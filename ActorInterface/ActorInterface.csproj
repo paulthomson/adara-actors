@@ -43,6 +43,7 @@
     <Compile Include="IEntryPoint.cs" />
     <Compile Include="IActorId.cs" />
     <Compile Include="IActorRuntime.cs" />
+    <Compile Include="IMailbox.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

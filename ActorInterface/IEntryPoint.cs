@@ -2,6 +2,6 @@
 {
     public interface IEntryPoint
     {
-        void EntryPoint();
+        void EntryPoint(IActorRuntime runtime);
     }
 }

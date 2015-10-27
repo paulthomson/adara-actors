@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HelloActor.cs" />
     <Compile Include="HumanEatParams.cs" />
     <Compile Include="HumanProxy.cs" />
     <Compile Include="IHuman.cs" />
@@ -53,6 +54,14 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ActorFramework\ActorFramework.csproj">
+      <Project>{8F1B0FDF-57D5-463C-B846-D05CA44E49B3}</Project>
+      <Name>ActorFramework</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ActorInterface\ActorInterface.csproj">
+      <Project>{75810608-D2F1-4431-B827-DEF01C020DA5}</Project>
+      <Name>ActorInterface</Name>
+    </ProjectReference>
     <ProjectReference Include="..\TypedActorFramework\TypedActorFramework.csproj">
       <Project>{2464F9F7-085A-4536-9C1F-20C30D80A5FF}</Project>
       <Name>TypedActorFramework</Name>
