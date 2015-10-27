@@ -3,9 +3,9 @@ using ActorInterface;
 
 namespace Example
 {
-    public class HelloActor : IEntryPoint
+    public class HelloActor : IActor
     {
-        #region Implementation of IEntryPoint
+        #region Implementation of IActor
 
         public void EntryPoint(IActorRuntime runtime)
         {

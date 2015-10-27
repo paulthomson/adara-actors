@@ -2,6 +2,6 @@
 {
     public interface ITypedActorRuntime
     {
-        T Create<T>(T actorInstance) where T : ITypedActor;
+        T Create<T>(T typeActorInstance) where T : ITypedActor;
     }
 }

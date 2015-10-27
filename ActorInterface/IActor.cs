@@ -1,6 +1,6 @@
 ﻿namespace ActorInterface
 {
-    public interface IEntryPoint
+    public interface IActor
     {
         void EntryPoint(IActorRuntime runtime);
     }

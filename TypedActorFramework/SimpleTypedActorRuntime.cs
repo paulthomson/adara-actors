@@ -17,13 +17,15 @@ namespace TypedActorFramework
 
         #region Implementation of ITypedActorRuntime
 
-        public T Create<T>(T actorInstance) where T : ITypedActor
+        public T Create<T>(T typedActorInstance) where T : ITypedActor
         {
             var mailbox =
-                actorRuntime.Create(new TypeActorEntryPoint(actorInstance));
+                actorRuntime.Create(new TypeActorActor());
+            mailbox.Send(typedActorInstance);
 
             Type proxyType = proxies.GetProxyType(typeof(T));
-            var res = (T) Activator.CreateInstance(proxyType,
+            var res = (T) Activator.CreateInstance(
+                proxyType,
                 mailbox);
 
             return res;

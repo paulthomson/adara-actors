@@ -2,13 +2,8 @@
 {
     public interface IActorRuntime
     {
-        IMailbox<object> Create(IEntryPoint entryPoint);
-        // void Join(IActorId actorId);
-        // void Send(IActorId actorId, object msg);
-        // object Receive();
-
+        IMailbox<object> Create(IActor actorInstance);
         IMailbox<T> CreateMailbox<T>();
-            
         IMailbox<object> CurrentMailbox();
     }
 }

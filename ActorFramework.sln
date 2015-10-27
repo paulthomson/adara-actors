@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActorFramework", "ActorFram
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActorInterface", "ActorInterface\ActorInterface.csproj", "{75810608-D2F1-4431-B827-DEF01C020DA5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActorTestingFramework", "ActorTestingFramework\ActorTestingFramework.csproj", "{40F65E6E-D9B2-4874-BBB3-06EECA23C845}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{75810608-D2F1-4431-B827-DEF01C020DA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75810608-D2F1-4431-B827-DEF01C020DA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75810608-D2F1-4431-B827-DEF01C020DA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40F65E6E-D9B2-4874-BBB3-06EECA23C845}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40F65E6E-D9B2-4874-BBB3-06EECA23C845}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40F65E6E-D9B2-4874-BBB3-06EECA23C845}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40F65E6E-D9B2-4874-BBB3-06EECA23C845}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

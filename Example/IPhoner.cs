@@ -4,7 +4,7 @@ namespace Example
 {
     public interface IPhoner : ITypedActor
     {
-        void SetAnswerPhone(IAnswerPhone answerPhone);
+        void Init(int id, IAnswerPhone answerPhone);
         void Go();
     }
 }

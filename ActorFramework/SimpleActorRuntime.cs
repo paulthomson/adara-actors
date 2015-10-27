@@ -19,22 +19,18 @@ namespace ActorFramework
 
         #region Implementation of IActorRuntime
 
-        public IMailbox<object> Create(IEntryPoint entryPoint)
+        public IMailbox<object> Create(IActor actorInstance)
         {
             // Ensure that calling Task has an id.
             GetCurrentActorInfo();
 
             lock (mutex)
             {
-                ActorId actorId = new ActorId(nextActorId++);
-                var actorTask = new Task(() => { ActorBody(entryPoint, this); });
-                ActorInfo actorInfo = new ActorInfo(actorId, actorTask.Id);
+                var actorTask = new Task(
+                    () => { ActorBody(actorInstance, this); });
 
-                taskIdToActorId.Add(actorTask.Id, actorId);
-                actors.Add(actorId, actorInfo);
-
+                ActorInfo actorInfo = CreateActor(actorTask.Id);
                 actorTask.Start();
-
                 return actorInfo.Mailbox;
             }
         }
@@ -56,11 +52,20 @@ namespace ActorFramework
 
         #endregion
 
+        private ActorInfo CreateActor(int taskId)
+        {
+            ActorId actorId = new ActorId(nextActorId++);
+            taskIdToActorId.Add(taskId, actorId);
+            ActorInfo res = new ActorInfo(actorId, taskId);
+            actors.Add(actorId, res);
+            return res;
+        }
+
         private static void ActorBody(
-            IEntryPoint entryPoint,
+            IActor actor,
             IActorRuntime runtime)
         {
-            entryPoint.EntryPoint(runtime);
+            actor.EntryPoint(runtime);
         }
 
         private ActorInfo GetCurrentActorInfo()
@@ -79,9 +84,7 @@ namespace ActorFramework
 
                 if (actorId == null)
                 {
-                    actorId = new ActorId(nextActorId++);
-                    taskIdToActorId.Add(taskId, actorId);
-                    actors.Add(actorId, new ActorInfo(actorId, taskId));
+                    return CreateActor(taskId);
                 }
 
                 return actors[actorId];

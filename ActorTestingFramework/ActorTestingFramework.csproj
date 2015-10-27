@@ -4,17 +4,15 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{F3F11801-CEE3-47E0-B6F7-E8B209700207}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{40F65E6E-D9B2-4874-BBB3-06EECA23C845}</ProjectGuid>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Example</RootNamespace>
-    <AssemblyName>Example</AssemblyName>
+    <RootNamespace>ActorTestingFramework</RootNamespace>
+    <AssemblyName>ActorTestingFramework</AssemblyName>
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -24,7 +22,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -43,43 +40,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AnswerPhone.cs" />
-    <Compile Include="HelloActor.cs" />
-    <Compile Include="HumanEatParams.cs" />
-    <Compile Include="HumanProxy.cs" />
-    <Compile Include="IAnswerPhone.cs" />
-    <Compile Include="IHuman.cs" />
-    <Compile Include="IPhoner.cs" />
-    <Compile Include="IPinger.cs" />
-    <Compile Include="IPrinter.cs" />
-    <Compile Include="MyHuman.cs" />
-    <Compile Include="Phoner.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="ActorId.cs" />
+    <Compile Include="ActorInfo.cs" />
+    <Compile Include="ActorTerminatedException.cs" />
+    <Compile Include="IScheduler.cs" />
+    <Compile Include="ITestingActorRuntime.cs" />
+    <Compile Include="Mailbox.cs" />
+    <Compile Include="OpType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RandomScheduler.cs" />
+    <Compile Include="Safety.cs" />
+    <Compile Include="TestingActorRuntime.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\ActorFramework\ActorFramework.csproj">
-      <Project>{8F1B0FDF-57D5-463C-B846-D05CA44E49B3}</Project>
-      <Name>ActorFramework</Name>
-    </ProjectReference>
     <ProjectReference Include="..\ActorInterface\ActorInterface.csproj">
       <Project>{75810608-D2F1-4431-B827-DEF01C020DA5}</Project>
       <Name>ActorInterface</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ActorTestingFramework\ActorTestingFramework.csproj">
-      <Project>{40F65E6E-D9B2-4874-BBB3-06EECA23C845}</Project>
-      <Name>ActorTestingFramework</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\TypedActorFramework\TypedActorFramework.csproj">
-      <Project>{2464F9F7-085A-4536-9C1F-20C30D80A5FF}</Project>
-      <Name>TypedActorFramework</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\TypedActorInterface\TypedActorInterface.csproj">
-      <Project>{8E2F7F58-1BE2-47A1-BD55-A73F22C4BFB9}</Project>
-      <Name>TypedActorInterface</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

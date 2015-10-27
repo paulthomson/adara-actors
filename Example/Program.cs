@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ActorFramework;
 using ActorInterface;
+using ActorTestingFramework;
 using TypedActorFramework;
 using TypedActorInterface;
 
@@ -15,17 +16,61 @@ namespace Example
         {
             var task = Task.Factory.StartNew(() =>
             {
+//                ITestingActorRuntime testingRuntime = new TestingActorRuntime();
+//
+//                for (int i = 0; i < 300; ++i)
+//                {
+//                    try
+//                    {
+//                        testingRuntime.PrepareForNextSchedule();
+//                        Console.WriteLine("\n\n... ITERATION " + i + "\n\n");
+//
+//                        var helloActorMailbox = testingRuntime.Create(new HelloActor());
+//
+//                        helloActorMailbox.Send("hello");
+//                        helloActorMailbox.Send("world");
+//
+//                        var separateMailbox = testingRuntime.CreateMailbox<string>();
+//                        helloActorMailbox.Send(separateMailbox);
+//                        Console.WriteLine(separateMailbox.Receive());
+//
+//                        testingRuntime.Wait();
+//
+//                    }
+//                    catch (ActorTerminatedException)
+//                    {
+//                    }
+//
+//                }
+
+
+
                 IActorRuntime runtime = new SimpleActorRuntime();
                 ITypedActorRuntime typedRuntime = new SimpleTypedActorRuntime(runtime);
+
+
+                // Normal actors
+
+                var helloActorMailbox = runtime.Create(new HelloActor());
+                
+                helloActorMailbox.Send("hello");
+                helloActorMailbox.Send("world");
+                
+                var separateMailbox = runtime.CreateMailbox<string>();
+                helloActorMailbox.Send(separateMailbox);
+                Console.WriteLine(separateMailbox.Receive());
+
+
+                // Typed actors
 
                 IAnswerPhone answerPhone =
                     typedRuntime.Create<IAnswerPhone>(new AnswerPhone());
 
-                IPhoner phoner1 = typedRuntime.Create<IPhoner>(new Phoner(1));
-                IPhoner phoner2 = typedRuntime.Create<IPhoner>(new Phoner(2));
+                IPhoner phoner1 = typedRuntime.Create<IPhoner>(new Phoner());
+                IPhoner phoner2 = typedRuntime.Create<IPhoner>(new Phoner());
 
-                phoner1.SetAnswerPhone(answerPhone);
-                phoner2.SetAnswerPhone(answerPhone);
+                phoner1.Init(1, answerPhone);
+                phoner2.Init(2, answerPhone);
 
                 phoner2.Go();
                 phoner1.Go();
@@ -34,22 +79,13 @@ namespace Example
                 var res = runtime.CreateMailbox<string>();
 
                 answerPhone.CheckMessages(res);
-                Console.WriteLine(res.Receive());
+                Console.WriteLine("\nAttempt 1:\n\n" + res.Receive());
 
-                Thread.Sleep(500);
+                Thread.Sleep(1000);
 
                 answerPhone.CheckMessages(res);
-                Console.WriteLine(res.Receive());
-
-                //                var helloMailbox = runtime.Create(new HelloActor());
-                //
-                //                helloMailbox.Send("hello");
-                //                helloMailbox.Send("world");
-                //
-                //                var separateMailbox = runtime.CreateMailbox<string>();
-                //                helloMailbox.Send(separateMailbox);
-                //                var res = separateMailbox.Receive();
-                //                Console.WriteLine(res);
+                Console.WriteLine("\nAttempt 2:\n\n" + res.Receive());
+                
             });
 
             task.Wait();

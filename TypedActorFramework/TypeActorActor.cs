@@ -3,20 +3,17 @@ using TypedActorInterface;
 
 namespace TypedActorFramework
 {
-    public class TypeActorEntryPoint : IEntryPoint
+    public class TypeActorActor : IActor
     {
-        private readonly ITypedActor typedActor;
+        private ITypedActor typedActor;
 
-        public TypeActorEntryPoint(ITypedActor typedActor)
-        {
-            this.typedActor = typedActor;
-        }
-
-        #region Implementation of IEntryPoint
+        #region Implementation of IActor
 
         public void EntryPoint(IActorRuntime runtime)
         {
             var mailbox = runtime.CurrentMailbox();
+
+            typedActor = (ITypedActor) mailbox.Receive();
 
             while (true)
             {
