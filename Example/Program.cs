@@ -1,8 +1,11 @@
 ﻿
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using ActorFramework;
 using ActorInterface;
+using TypedActorFramework;
+using TypedActorInterface;
 
 namespace Example
 {
@@ -13,16 +16,40 @@ namespace Example
             var task = Task.Factory.StartNew(() =>
             {
                 IActorRuntime runtime = new SimpleActorRuntime();
+                ITypedActorRuntime typedRuntime = new SimpleTypedActorRuntime(runtime);
 
-                var helloMailbox = runtime.Create(new HelloActor());
+                IAnswerPhone answerPhone =
+                    typedRuntime.Create<IAnswerPhone>(new AnswerPhone());
 
-                helloMailbox.Send("hello");
-                helloMailbox.Send("world");
+                IPhoner phoner1 = typedRuntime.Create<IPhoner>(new Phoner(1));
+                IPhoner phoner2 = typedRuntime.Create<IPhoner>(new Phoner(2));
 
-                var separateMailbox = runtime.CreateMailbox<string>();
-                helloMailbox.Send(separateMailbox);
-                var res = separateMailbox.Receive();
-                Console.WriteLine(res);
+                phoner1.SetAnswerPhone(answerPhone);
+                phoner2.SetAnswerPhone(answerPhone);
+
+                phoner2.Go();
+                phoner1.Go();
+
+
+                var res = runtime.CreateMailbox<string>();
+
+                answerPhone.CheckMessages(res);
+                Console.WriteLine(res.Receive());
+
+                Thread.Sleep(500);
+
+                answerPhone.CheckMessages(res);
+                Console.WriteLine(res.Receive());
+
+                //                var helloMailbox = runtime.Create(new HelloActor());
+                //
+                //                helloMailbox.Send("hello");
+                //                helloMailbox.Send("world");
+                //
+                //                var separateMailbox = runtime.CreateMailbox<string>();
+                //                helloMailbox.Send(separateMailbox);
+                //                var res = separateMailbox.Receive();
+                //                Console.WriteLine(res);
             });
 
             task.Wait();

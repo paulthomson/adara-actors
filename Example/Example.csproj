@@ -43,10 +43,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnswerPhone.cs" />
     <Compile Include="HelloActor.cs" />
     <Compile Include="HumanEatParams.cs" />
     <Compile Include="HumanProxy.cs" />
+    <Compile Include="IAnswerPhone.cs" />
     <Compile Include="IHuman.cs" />
+    <Compile Include="IPhoner.cs" />
+    <Compile Include="IPinger.cs" />
+    <Compile Include="IPrinter.cs" />
+    <Compile Include="MyHuman.cs" />
+    <Compile Include="Phoner.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -9,9 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>TypedActorFramework</RootNamespace>
     <AssemblyName>TypedActorFramework</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -48,12 +49,19 @@
     <Compile Include="ICallable.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ProxyContainer.cs" />
+    <Compile Include="SimpleTypedActorRuntime.cs" />
+    <Compile Include="TypeActorEntryPoint.cs" />
     <Compile Include="Util.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ActorInterface\ActorInterface.csproj">
+      <Project>{75810608-D2F1-4431-B827-DEF01C020DA5}</Project>
+      <Name>ActorInterface</Name>
+    </ProjectReference>
     <ProjectReference Include="..\TypedActorInterface\TypedActorInterface.csproj">
       <Project>{8E2F7F58-1BE2-47A1-BD55-A73F22C4BFB9}</Project>
       <Name>TypedActorInterface</Name>

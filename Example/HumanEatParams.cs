@@ -24,9 +24,9 @@ namespace Example
             this.h = runtime.GetActorId(h);
         }
 
-        public void Call(ITypedActor t, IActorRuntimeInternal runtime)
+        public void Call(ITypedActor t)
         {
-            ((IHuman) t).Eat(a, b, o, runtime.GetActorProxy(h));
+            ((IHuman) t).Eat(a, b, o, null);
         }
     }
 }
