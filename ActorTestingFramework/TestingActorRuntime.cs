@@ -6,7 +6,7 @@ using ActorInterface;
 
 namespace ActorTestingFramework
 {
-    public class TestingActorRuntime : ITestingActorRuntime
+    public class TestingActorRuntime : IActorRuntime
     {
         private readonly Dictionary<int, ActorId> taskIdToActorId =
             new Dictionary<int, ActorId>();
@@ -18,7 +18,14 @@ namespace ActorTestingFramework
 
         private readonly List<ActorInfo> actorList = new List<ActorInfo>();
 
-        private IScheduler scheduler = new RandomScheduler();
+        private bool terminated;
+
+        private readonly IScheduler scheduler;
+
+        public TestingActorRuntime(IScheduler scheduler)
+        {
+            this.scheduler = scheduler;
+        }
 
         #region Implementation of IActorRuntime
 
@@ -28,7 +35,7 @@ namespace ActorTestingFramework
             GetCurrentActorInfo();
 
             var actorTask = new Task(
-                () => { ActorBody(actorInstance, this); });
+                () => { ActorBody(actorInstance, this, false); });
 
             var actorInfo = CreateActor(actorTask.Id, true);
             actorTask.Start();
@@ -59,28 +66,31 @@ namespace ActorTestingFramework
             return GetCurrentActorInfo().Mailbox;
         }
 
-        public void PrepareForNextSchedule()
-        {
-            scheduler.NextSchedule();
-            taskIdToActorId.Clear();
-            nextActorId = 0;
-            actors.Clear();
-            actorList.Clear();
-        }
-
-        public void Wait()
-        {
-            ActorInfo currentInfo = GetCurrentActorInfo();
-            currentInfo.enabled = false;
-
-            Schedule(OpType.END);
-        }
-
         #endregion
 
-        private static void ActorBody(
+        public void WaitForAllActorsToTerminate()
+        {
+            foreach (var info in actorList)
+            {
+                while (true)
+                {
+                    lock (info.mutex)
+                    {
+                        if (info.terminated)
+                        {
+                            break;
+                        }
+                        Thread.Yield();
+                    }
+
+                }
+            }
+        }
+
+        public static void ActorBody(
             IActor actor,
-            TestingActorRuntime runtime)
+            TestingActorRuntime runtime,
+            bool mainThread)
         {
             ActorInfo info = runtime.GetCurrentActorInfo();
 
@@ -90,12 +100,16 @@ namespace ActorTestingFramework
                 {
                     Safety.Assert(info.active);
                     info.currentOp = OpType.START;
-                    info.active = false;
-                    Monitor.PulseAll(info.mutex);
 
-                    while (!info.active)
+                    if (!mainThread)
                     {
-                        Monitor.Wait(info.mutex);
+                        info.active = false;
+                        Monitor.PulseAll(info.mutex);
+
+                        while (!info.active)
+                        {
+                            Monitor.Wait(info.mutex);
+                        }
                     }
                 }
                 actor.EntryPoint(runtime);
@@ -112,6 +126,11 @@ namespace ActorTestingFramework
             catch (ActorTerminatedException)
             {
                 
+            }
+
+            lock (info.mutex)
+            {
+                info.terminated = true;
             }
         }
 
@@ -133,9 +152,9 @@ namespace ActorTestingFramework
         {
             ActorInfo currentActor = GetCurrentActorInfo();
 
-            if (currentActor.terminated)
+            if (CheckTerminated(opType))
             {
-                throw new ActorTerminatedException();
+                return;
             }
 
             currentActor.currentOp = opType;
@@ -145,7 +164,13 @@ namespace ActorTestingFramework
             if (nextActor == null)
             {
                 // Deadlock
-                TerminateAll();
+                terminated = true;
+                ActivateAllActors();
+
+                if (CheckTerminated(opType))
+                {
+                    return;
+                }
             }
 
             if (nextActor != currentActor)
@@ -170,9 +195,9 @@ namespace ActorTestingFramework
                         Monitor.Wait(currentActor.mutex);
                     }
 
-                    if (currentActor.terminated)
+                    if (CheckTerminated(opType))
                     {
-                        throw new ActorTerminatedException();
+                        return;
                     }
 
                     Safety.Assert(currentActor.enabled);
@@ -181,7 +206,7 @@ namespace ActorTestingFramework
             }
         }
 
-        private void TerminateAll()
+        private void ActivateAllActors()
         {
             foreach(var info in actorList)
             {
@@ -189,15 +214,24 @@ namespace ActorTestingFramework
                 {
                     info.active = true;
                     info.enabled = false;
-                    info.terminated = true;
                     Monitor.PulseAll(info.mutex);
                 }
             }
-            throw new ActorTerminatedException();
+        }
+
+        private bool CheckTerminated(OpType opType)
+        {
+            if (terminated && opType != OpType.END)
+            {
+                throw new ActorTerminatedException();
+            }
+            return terminated;
         }
 
         public ActorInfo GetCurrentActorInfo()
         {
+            CheckTerminated(OpType.INVALID);
+
             if (Task.CurrentId == null)
             {
                 throw new InvalidOperationException(
