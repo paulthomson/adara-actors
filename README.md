@@ -1,1 +1,4 @@
-# adara-actors
+# Adara Actors
+
+See [an example](Example/Program.cs).
+
