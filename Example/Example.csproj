@@ -50,8 +50,6 @@
     <Compile Include="IAnswerPhone.cs" />
     <Compile Include="IHuman.cs" />
     <Compile Include="IPhoner.cs" />
-    <Compile Include="IPinger.cs" />
-    <Compile Include="IPrinter.cs" />
     <Compile Include="MyHuman.cs" />
     <Compile Include="Phoner.cs" />
     <Compile Include="Program.cs" />

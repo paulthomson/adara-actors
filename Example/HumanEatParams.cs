@@ -3,6 +3,10 @@ using TypedActorInterface;
 
 namespace Example
 {
+
+    // Note: this class is not used.
+    // It is used to think about the design of parameter classes.
+
     public class HumanEatParams : ICallable
     {
         public int a;
