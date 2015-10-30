@@ -39,7 +39,7 @@ namespace Example
 
                 // send it to helloActor
                 helloActorMailbox.Send(separateMailbox);
-                // receive a string on this separte mailbox (no casting)
+                // receive a string on this separate mailbox (no casting)
                 string textResult = separateMailbox.Receive();
                 Console.WriteLine(textResult);
 
