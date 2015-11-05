@@ -98,7 +98,12 @@ namespace TypedActorFramework
 
             // Methods
 
-            var methods = actorType.GetMethods();
+            var methods = actorType.GetMethods().ToList();
+
+            foreach (var i in actorType.GetInterfaces())
+            {
+                methods.AddRange(i.GetMethods());
+            }
 
             foreach (var m in methods)
             {
@@ -114,8 +119,10 @@ namespace TypedActorFramework
 
         private static Type CreateMessageClass(ModuleBuilder mb, Type actorType, MethodInfo m)
         {
+            Safety.Assert(m.DeclaringType != null);
+
             TypeBuilder tb = mb.DefineType(
-                $"{actorType.FullName}${m.Name}$Message",
+                $"{m.DeclaringType.FullName}${m.Name}$Message",
                 TypeAttributes.Public | TypeAttributes.BeforeFieldInit);
 
             tb.AddInterfaceImplementation(typeof(ICallable));
