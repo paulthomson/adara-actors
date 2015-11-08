@@ -43,7 +43,7 @@ namespace ActorFramework
                     "Cannot call actor operation from non-Task context");
             }
 
-            return new Mailbox<T>(GetCurrentActorInfo());
+            return new Mailbox<T>(GetCurrentActorInfo(), this);
         }
 
         public IMailbox<object> CurrentMailbox()
@@ -62,7 +62,7 @@ namespace ActorFramework
         {
             ActorId actorId = new ActorId(nextActorId++);
             taskIdToActorId.Add(taskId, actorId);
-            ActorInfo res = new ActorInfo(actorId, name, taskId);
+            ActorInfo res = new ActorInfo(actorId, name, taskId, this);
             actors.Add(actorId, res);
             return res;
         }
@@ -74,7 +74,7 @@ namespace ActorFramework
             actor.EntryPoint(runtime);
         }
 
-        private ActorInfo GetCurrentActorInfo()
+        public ActorInfo GetCurrentActorInfo()
         {
             if (Task.CurrentId == null)
             {

@@ -10,12 +10,12 @@ namespace ActorFramework
 
         public string name;
 
-        public ActorInfo(ActorId id, string name, int taskId)
+        public ActorInfo(ActorId id, string name, int taskId, SimpleActorRuntime runtime)
         {
             this.id = id;
             this.name = name;
             this.taskId = taskId;
-            Mailbox = new Mailbox<object>(this);
+            Mailbox = new Mailbox<object>(this, runtime);
         }
 
         #region Overrides of Object

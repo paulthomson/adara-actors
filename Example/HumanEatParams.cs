@@ -32,5 +32,14 @@ namespace Example
         {
             ((IHuman) t).Eat(a, b, o, null);
         }
+
+        #region Overrides of Object
+
+        public override string ToString()
+        {
+            return "HumanEat";
+        }
+
+        #endregion
     }
 }

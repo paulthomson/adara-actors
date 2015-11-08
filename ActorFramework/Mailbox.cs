@@ -3,18 +3,23 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using ActorInterface;
+using NLog;
 
 namespace ActorFramework
 {
     public class Mailbox<T> : IMailbox<T>
     {
+        private static Logger LOGGER = LogManager.GetCurrentClassLogger();
+
         private readonly ActorInfo ownerActorInfo;
+        private readonly SimpleActorRuntime runtime;
         private readonly IList<T> mailbox;
         private readonly object mutex;
 
-        public Mailbox(ActorInfo ownerActorInfo)
+        public Mailbox(ActorInfo ownerActorInfo, SimpleActorRuntime runtime)
         {
             this.ownerActorInfo = ownerActorInfo;
+            this.runtime = runtime;
             mailbox = new List<T>();
             mutex = new object();
         }
@@ -23,9 +28,16 @@ namespace ActorFramework
         {
             lock (mutex)
             {
+                LogSend(msg);
                 mailbox.Add(msg);
                 Monitor.PulseAll(mutex);
             }
+        }
+
+        private void LogSend(T msg)
+        {
+            var currentActor = runtime.GetCurrentActorInfo();
+            LOGGER.Trace($"{currentActor} -- {msg} --> {ownerActorInfo}");
         }
 
         public T Receive()

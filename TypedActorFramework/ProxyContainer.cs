@@ -246,6 +246,22 @@ namespace TypedActorFramework
             callIL.Emit(OpCodes.Ret);
 
 
+            // Method ToString
+            // public hidebysig virtual instance
+                methodBuilder = tb.DefineMethod(nameof(ToString),
+                MethodAttributes.Public |
+                MethodAttributes.HideBySig | MethodAttributes.Virtual,
+                CallingConventions.Standard,
+                typeof(string),
+                Type.EmptyTypes
+                );
+            callIL = methodBuilder.GetILGenerator();
+
+            callIL.Emit(OpCodes.Ldstr, m.Name);
+            callIL.Emit(OpCodes.Ret);
+
+
+
             // Done
             Type t = tb.CreateType();
 
