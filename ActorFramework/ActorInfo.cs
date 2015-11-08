@@ -1,22 +1,30 @@
-﻿using System;
-using System.Threading;
-using ActorInterface;
-
+﻿
 namespace ActorFramework
 {
     public class ActorInfo
     {
         public readonly ActorId id;
+        public readonly int taskId;
 
-        public Mailbox<object> Mailbox { get; private set; }
+        public Mailbox<object> Mailbox { get; }
 
-        public ActorInfo(ActorId id, int? owner)
+        public string name;
+
+        public ActorInfo(ActorId id, string name, int taskId)
         {
             this.id = id;
-            if (owner.HasValue)
-            {
-                Mailbox = new Mailbox<object>(owner.Value);
-            }
+            this.name = name;
+            this.taskId = taskId;
+            Mailbox = new Mailbox<object>(this);
         }
+
+        #region Overrides of Object
+
+        public override string ToString()
+        {
+            return $"{name ?? "Unnamed"} ({id.id})";
+        }
+
+        #endregion
     }
 }

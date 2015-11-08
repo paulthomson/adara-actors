@@ -7,15 +7,15 @@ namespace ActorTestingFramework
 {
     public class Mailbox<T> : IMailbox<T>
     {
-        private readonly int owner;
+        private readonly ActorInfo ownerActorInfo;
         private readonly TestingActorRuntime runtime;
         private readonly IList<T> mailbox;
 
         private ActorInfo waiter = null;
 
-        public Mailbox(int owner, TestingActorRuntime runtime)
+        public Mailbox(ActorInfo ownerActorInfo, TestingActorRuntime runtime)
         {
-            this.owner = owner;
+            this.ownerActorInfo = ownerActorInfo;
             this.runtime = runtime;
             mailbox = new List<T>();
         }
@@ -39,7 +39,7 @@ namespace ActorTestingFramework
             {
                 throw new InvalidOperationException("Tried to receive from a non-Task context");
             }
-            if (Task.CurrentId.Value != owner)
+            if (Task.CurrentId.Value != ownerActorInfo.taskId)
             {
                 throw new InvalidOperationException("Only the owner can receive from a Mailbox");
             }

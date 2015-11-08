@@ -8,13 +8,13 @@ namespace ActorFramework
 {
     public class Mailbox<T> : IMailbox<T>
     {
-        private readonly int owner;
+        private readonly ActorInfo ownerActorInfo;
         private readonly IList<T> mailbox;
         private readonly object mutex;
 
-        public Mailbox(int owner)
+        public Mailbox(ActorInfo ownerActorInfo)
         {
-            this.owner = owner;
+            this.ownerActorInfo = ownerActorInfo;
             mailbox = new List<T>();
             mutex = new object();
         }
@@ -34,7 +34,7 @@ namespace ActorFramework
             {
                 throw new InvalidOperationException("Tried to receive from a non-Task context");
             }
-            if (Task.CurrentId.Value != owner)
+            if (Task.CurrentId.Value != ownerActorInfo.taskId)
             {
                 throw new InvalidOperationException("Only the owner can receive from a Mailbox");
             }

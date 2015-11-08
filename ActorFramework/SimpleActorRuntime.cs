@@ -19,7 +19,7 @@ namespace ActorFramework
 
         #region Implementation of IActorRuntime
 
-        public IMailbox<object> Create(IActor actorInstance)
+        public IMailbox<object> Create(IActor actorInstance, string name = null)
         {
             // Ensure that calling Task has an id.
             GetCurrentActorInfo();
@@ -29,7 +29,7 @@ namespace ActorFramework
                 var actorTask = new Task(
                     () => { ActorBody(actorInstance, this); });
 
-                ActorInfo actorInfo = CreateActor(actorTask.Id);
+                ActorInfo actorInfo = CreateActor(actorTask.Id, name);
                 actorTask.Start();
                 return actorInfo.Mailbox;
             }
@@ -42,7 +42,8 @@ namespace ActorFramework
                 throw new InvalidOperationException(
                     "Cannot call actor operation from non-Task context");
             }
-            return new Mailbox<T>(Task.CurrentId.Value);
+
+            return new Mailbox<T>(GetCurrentActorInfo());
         }
 
         public IMailbox<object> CurrentMailbox()
@@ -50,13 +51,18 @@ namespace ActorFramework
             return GetCurrentActorInfo().Mailbox;
         }
 
+        public void AssignNameToCurrent(string name)
+        {
+            GetCurrentActorInfo().name = name;
+        }
+
         #endregion
 
-        private ActorInfo CreateActor(int taskId)
+        private ActorInfo CreateActor(int taskId, string name = null)
         {
             ActorId actorId = new ActorId(nextActorId++);
             taskIdToActorId.Add(taskId, actorId);
-            ActorInfo res = new ActorInfo(actorId, taskId);
+            ActorInfo res = new ActorInfo(actorId, name, taskId);
             actors.Add(actorId, res);
             return res;
         }

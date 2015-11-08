@@ -29,7 +29,7 @@ namespace ActorTestingFramework
 
         #region Implementation of IActorRuntime
 
-        public IMailbox<object> Create(IActor actorInstance)
+        public IMailbox<object> Create(IActor actorInstance, string name = null)
         {
             // Ensure that calling Task has an id.
             GetCurrentActorInfo();
@@ -37,7 +37,8 @@ namespace ActorTestingFramework
             var actorTask = new Task(
                 () => { ActorBody(actorInstance, this, false); });
 
-            var actorInfo = CreateActor(actorTask.Id, true);
+            var actorInfo = CreateActor(actorTask.Id, true, name);
+
             actorTask.Start();
 
             lock (actorInfo.mutex)
@@ -58,12 +59,17 @@ namespace ActorTestingFramework
                 throw new InvalidOperationException(
                     "Cannot call actor operation from non-Task context");
             }
-            return new Mailbox<T>(Task.CurrentId.Value, this);
+            return new Mailbox<T>(GetCurrentActorInfo(), this);
         }
 
         public IMailbox<object> CurrentMailbox()
         {
             return GetCurrentActorInfo().Mailbox;
+        }
+
+        public void AssignNameToCurrent(string name)
+        {
+            GetCurrentActorInfo().name = name;
         }
 
         #endregion
@@ -134,7 +140,7 @@ namespace ActorTestingFramework
             }
         }
 
-        private ActorInfo CreateActor(int taskId, bool schedule)
+        private ActorInfo CreateActor(int taskId, bool schedule, string name = null)
         {
             if (schedule)
             {
@@ -142,7 +148,7 @@ namespace ActorTestingFramework
             }
             ActorId actorId = new ActorId(nextActorId++);
             taskIdToActorId.Add(taskId, actorId);
-            ActorInfo res = new ActorInfo(actorId, taskId, this);
+            ActorInfo res = new ActorInfo(actorId, name, taskId, this);
             actors.Add(actorId, res);
             actorList.Add(res);
             return res;
