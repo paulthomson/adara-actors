@@ -67,6 +67,11 @@ namespace ActorTestingFramework
             return GetCurrentActorInfo().Mailbox;
         }
 
+        public IMailbox<object> MailboxFromTask(Task task)
+        {
+            return GetActorInfo(task.Id).Mailbox;
+        }
+
         public void AssignNameToCurrent(string name)
         {
             GetCurrentActorInfo().name = name;
@@ -236,14 +241,19 @@ namespace ActorTestingFramework
 
         public ActorInfo GetCurrentActorInfo()
         {
-            CheckTerminated(OpType.INVALID);
-
             if (Task.CurrentId == null)
             {
                 throw new InvalidOperationException(
                     "Cannot call actor operation from non-Task context");
             }
-            int taskId = Task.CurrentId.Value;
+
+            return GetActorInfo(Task.CurrentId.Value);
+        }
+
+        public ActorInfo GetActorInfo(int taskId)
+        {
+            CheckTerminated(OpType.INVALID);
+            
             ActorId actorId;
             taskIdToActorId.TryGetValue(taskId, out actorId);
 

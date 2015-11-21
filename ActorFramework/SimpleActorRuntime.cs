@@ -51,6 +51,11 @@ namespace ActorFramework
             return GetCurrentActorInfo().Mailbox;
         }
 
+        public IMailbox<object> MailboxFromTask(Task task)
+        {
+            return GetActorInfo(task.Id).Mailbox;
+        }
+
         public void AssignNameToCurrent(string name)
         {
             GetCurrentActorInfo().name = name;
@@ -81,10 +86,13 @@ namespace ActorFramework
                 throw new InvalidOperationException(
                     "Cannot call actor operation from non-Task context");
             }
-            int taskId = Task.CurrentId.Value;
+            return GetActorInfo(Task.CurrentId.Value);
+        }
+
+        public ActorInfo GetActorInfo(int taskId)
+        {
             lock (mutex)
             {
-
                 ActorId actorId;
                 taskIdToActorId.TryGetValue(taskId, out actorId);
 
