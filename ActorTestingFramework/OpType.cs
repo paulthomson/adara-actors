@@ -4,6 +4,7 @@
     {
         INVALID,
         START, END,
-        CREATE, SEND, RECEIVE
+        CREATE, JOIN, SEND, RECEIVE,
+        WaitForDeadlock
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using ActorInterface;
 
@@ -19,20 +20,36 @@ namespace ActorFramework
 
         #region Implementation of IActorRuntime
 
+        public void RegisterMainTask(Task mainTask)
+        {
+            CreateActor(mainTask, "MainTask");
+        }
+
+        public Task StartMain(Action action)
+        {
+            Task task = new Task(action);
+            RegisterMainTask(task);
+            task.Start();
+            return task;
+        }
+
+        public Task<T> StartMain<T>(Func<T> func)
+        {
+            Task<T> task = new Task<T>(func);
+            RegisterMainTask(task);
+            task.Start();
+            return task;
+        }
+
         public IMailbox<object> Create(IActor actorInstance, string name = null)
         {
-            // Ensure that calling Task has an id.
-            GetCurrentActorInfo();
-
-            lock (mutex)
+            var res = CreateActor<object>(() =>
             {
-                var actorTask = new Task(
-                    () => { ActorBody(actorInstance, this); });
+                actorInstance.EntryPoint(this);
+                return null;
+            }, name);
 
-                ActorInfo actorInfo = CreateActor(actorTask.Id, name);
-                actorTask.Start();
-                return actorInfo.Mailbox;
-            }
+            return res.Mailbox;
         }
 
         public IMailbox<T> CreateMailbox<T>()
@@ -51,9 +68,43 @@ namespace ActorFramework
             return GetCurrentActorInfo().Mailbox;
         }
 
+        public Task StartNew(Action action, string name = null)
+        {
+            var res = CreateActor<object>(() =>
+            {
+                action();
+                return null;
+            },
+                name);
+
+            return res.task;
+        }
+
+        public Task<T> StartNew<T>(Func<T> func, string name = null)
+        {
+            var res = CreateActor<T>(func, name);
+
+            return (Task<T>) res.task;
+        }
+
+        public void Sleep(int millisecondsTimeout)
+        {
+            Thread.Sleep(millisecondsTimeout);
+        }
+
         public IMailbox<object> MailboxFromTask(Task task)
         {
             return GetActorInfo(task.Id).Mailbox;
+        }
+
+        public void WaitForActor(IMailbox<object> mailbox)
+        {
+            ((Mailbox<object>) mailbox).ownerActorInfo.task.Wait();
+        }
+
+        public void WaitForActor(Task task)
+        {
+            task.Wait();
         }
 
         public void AssignNameToCurrent(string name)
@@ -63,20 +114,34 @@ namespace ActorFramework
 
         #endregion
 
-        private ActorInfo CreateActor(int taskId, string name = null)
+        private ActorInfo CreateActor<T>(Func<T> func, string name)
         {
-            ActorId actorId = new ActorId(nextActorId++);
-            taskIdToActorId.Add(taskId, actorId);
-            ActorInfo res = new ActorInfo(actorId, name, taskId, this);
-            actors.Add(actorId, res);
-            return res;
+            // Ensure that calling Task has an id.
+            GetCurrentActorInfo();
+
+            lock (mutex)
+            {
+                Task<T> actorTask = new Task<T>(
+                    func);
+
+                var actorInfo = CreateActor(actorTask, name);
+
+                actorTask.Start();
+                return actorInfo;
+            }
         }
 
-        private static void ActorBody(
-            IActor actor,
-            IActorRuntime runtime)
+        private ActorInfo CreateActor(Task actorTask, string name = null)
         {
-            actor.EntryPoint(runtime);
+            ActorId actorId = new ActorId(nextActorId++);
+            taskIdToActorId.Add(actorTask.Id, actorId);
+            ActorInfo actorInfo = new ActorInfo(
+                actorId,
+                name,
+                actorTask,
+                this);
+            actors.Add(actorId, actorInfo);
+            return actorInfo;
         }
 
         public ActorInfo GetCurrentActorInfo()
@@ -98,7 +163,7 @@ namespace ActorFramework
 
                 if (actorId == null)
                 {
-                    return CreateActor(taskId);
+                    throw new InvalidOperationException();
                 }
 
                 return actors[actorId];

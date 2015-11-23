@@ -4,23 +4,27 @@ using ActorInterface;
 
 namespace ActorTestingFramework
 {
-    public class TestingRuntime : ITestingRuntime
+    public class TestLauncher : ITestLauncher
     {
         private IScheduler scheduler;
         private TestingActorRuntime runtime;
 
 
-        #region Implementation of ITestingRuntime
+        #region Implementation of ITestLauncher
 
-        public void Execute(Action<IActorRuntime> action)
+        public void Execute(Action<IActorRuntime, ITestingRuntime> action)
         {
             runtime = new TestingActorRuntime(scheduler);
             scheduler.NextSchedule();
 
-            var task = Task.Factory.StartNew(() =>
+            var task = runtime.StartMain(() =>
             {
-                TestingActorRuntime.ActorBody(
-                    new ActionActor(action),
+                TestingActorRuntime.ActorBody<object>(
+                    () =>
+                    {
+                        action(runtime, runtime);
+                        return null;
+                    },
                     runtime,
                     true);
             });

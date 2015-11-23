@@ -14,12 +14,11 @@ namespace Example
     {
         private static void Main(string[] args)
         {
-            Task task = Task.Factory.StartNew(() =>
+            IActorRuntime runtime = new SimpleActorRuntime();
+
+            Task mainTask = runtime.StartMain(() =>
             {
-
                 // Normal actors.
-
-                IActorRuntime runtime = new SimpleActorRuntime();
 
                 // Creates an actor and yields its mailbox.
                 // Only the owner of a mailbox can call Receive.
@@ -81,7 +80,7 @@ namespace Example
                 Console.WriteLine("\nAttempt 2:\n\n" + returnMailbox.Receive());
             });
 
-            task.Wait();
+            mainTask.Wait();
 
 
 
@@ -94,27 +93,28 @@ namespace Example
             // can be provided that does testing (using a different
             // test harness).
 
-            ITestingRuntime testingRuntime = new TestingRuntime();
-            testingRuntime.SetScheduler(new RandomScheduler());
+            ITestLauncher testLauncher = new TestLauncher();
+            testLauncher.SetScheduler(new RandomScheduler());
 
             for (int i = 1; i <= 100; ++i)
             {
                 Console.WriteLine("\n\n... ITERATION " + i + "\n\n");
-                testingRuntime.Execute(runtime =>
+                testLauncher.Execute((runtime2, testingRuntime) =>
                 {
                     IMailbox<object> helloActorMailbox =
-                        runtime.Create(new HelloActor());
+                        runtime2.Create(new HelloActor());
 
                     helloActorMailbox.Send("hello");
                     helloActorMailbox.Send("world");
 
                     IMailbox<string> separateMailbox =
-                        runtime.CreateMailbox<string>();
+                        runtime2.CreateMailbox<string>();
                     helloActorMailbox.Send(separateMailbox);
                     Console.WriteLine(separateMailbox.Receive());
                 });
             }
 
+            Console.WriteLine("[Done]");
             Console.ReadLine();
         }
     }

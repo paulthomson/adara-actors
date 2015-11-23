@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ActorInterface;
 
 namespace ActorTestingFramework
 {
-    public class TestingActorRuntime : IActorRuntime
+    public class TestingActorRuntime : IActorRuntime, ITestingRuntime
     {
         private readonly Dictionary<int, ActorId> taskIdToActorId =
             new Dictionary<int, ActorId>();
@@ -29,27 +30,36 @@ namespace ActorTestingFramework
 
         #region Implementation of IActorRuntime
 
+        public void RegisterMainTask(Task mainTask)
+        {
+            CreateActor(mainTask, "MainTask");
+        }
+
+        public Task StartMain(Action action)
+        {
+            Task task = new Task(action);
+            RegisterMainTask(task);
+            task.Start();
+            return task;
+        }
+
+        public Task<T> StartMain<T>(Func<T> func)
+        {
+            Task<T> task = new Task<T>(func);
+            RegisterMainTask(task);
+            task.Start();
+            return task;
+        }
+
         public IMailbox<object> Create(IActor actorInstance, string name = null)
         {
-            // Ensure that calling Task has an id.
-            GetCurrentActorInfo();
-
-            var actorTask = new Task(
-                () => { ActorBody(actorInstance, this, false); });
-
-            var actorInfo = CreateActor(actorTask.Id, true, name);
-
-            actorTask.Start();
-
-            lock (actorInfo.mutex)
+            var res = CreateActor<object>(() =>
             {
-                while (actorInfo.active)
-                {
-                    Monitor.Wait(actorInfo.mutex);
-                }
-            }
+                actorInstance.EntryPoint(this);
+                return null;
+            }, name);
 
-            return actorInfo.Mailbox;
+            return res.Mailbox;
         }
 
         public IMailbox<T> CreateMailbox<T>()
@@ -67,14 +77,81 @@ namespace ActorTestingFramework
             return GetCurrentActorInfo().Mailbox;
         }
 
+        public Task StartNew(Action action, string name = null)
+        {
+            var res = CreateActor<object>(() =>
+            {
+                action();
+                return null;
+            },
+                name);
+
+            return res.task;
+        }
+
+        public Task<T> StartNew<T>(Func<T> func, string name = null)
+        {
+            var res = CreateActor<T>(func, name);
+
+            return (Task<T>) res.task;
+        }
+
+        public void Sleep(int millisecondsTimeout)
+        {
+            // TODO: Perhaps yield?
+        }
+
         public IMailbox<object> MailboxFromTask(Task task)
         {
             return GetActorInfo(task.Id).Mailbox;
         }
 
+        public void WaitForActor(IMailbox<object> mailbox)
+        {
+            var actorInfo = GetCurrentActorInfo();
+            var otherInfo = ((Mailbox<object>) mailbox).ownerActorInfo;
+
+            if (!otherInfo.terminated)
+            {
+                actorInfo.enabled = false;
+            }
+
+            Schedule(OpType.JOIN);
+
+            Safety.Assert(otherInfo.terminated);
+        }
+
+        public void WaitForActor(Task task)
+        {
+            var actorInfo = GetCurrentActorInfo();
+            var otherInfo = GetActorInfo(task.Id);
+
+            if (!otherInfo.terminated)
+            {
+                actorInfo.enabled = false;
+                otherInfo.terminateWaiters.Add(actorInfo);
+            }
+
+            Schedule(OpType.JOIN);
+
+            Safety.Assert(otherInfo.terminated);
+        }
+
         public void AssignNameToCurrent(string name)
         {
             GetCurrentActorInfo().name = name;
+        }
+
+        #endregion
+
+        #region Implementation of ITestingRuntime
+
+        public void WaitForDeadlock()
+        {
+            var actorInfo = GetCurrentActorInfo();
+            actorInfo.enabled = false;
+            actorInfo.waitingForDeadlock = true;
+            Schedule(OpType.WaitForDeadlock);
         }
 
         #endregion
@@ -98,66 +175,107 @@ namespace ActorTestingFramework
             }
         }
 
-        public static void ActorBody(
-            IActor actor,
+        public static T ActorBody<T>(
+            Func<T> func,
             TestingActorRuntime runtime,
             bool mainThread)
         {
             ActorInfo info = runtime.GetCurrentActorInfo();
 
-            try
+            lock (info.mutex)
             {
-                lock (info.mutex)
+                Safety.Assert(info.active);
+                info.currentOp = OpType.START;
+
+                if (!mainThread)
                 {
-                    Safety.Assert(info.active);
-                    info.currentOp = OpType.START;
+                    info.active = false;
+                    Monitor.PulseAll(info.mutex);
 
-                    if (!mainThread)
+                    while (!info.active)
                     {
-                        info.active = false;
-                        Monitor.PulseAll(info.mutex);
-
-                        while (!info.active)
-                        {
-                            Monitor.Wait(info.mutex);
-                        }
+                        Monitor.Wait(info.mutex);
                     }
                 }
-                actor.EntryPoint(runtime);
+            }
 
-                runtime.Schedule(OpType.END);
-
-                lock (info.mutex)
-                {
-                    info.enabled = false;
-                }
-
-                runtime.Schedule(OpType.END);
+            try
+            {
+                return func();
             }
             catch (ActorTerminatedException)
             {
                 
             }
-
-            lock (info.mutex)
+            finally
             {
-                info.terminated = true;
+                try
+                {
+                    runtime.Schedule(OpType.END);
+
+                    lock (info.mutex)
+                    {
+                        info.enabled = false;
+                        info.terminated = true;
+                        foreach (var waiter in info.terminateWaiters)
+                        {
+                            waiter.enabled = true;
+                        }
+                        info.terminateWaiters.Clear();
+                    }
+
+                    runtime.Schedule(OpType.END);
+                }
+                catch (ActorTerminatedException)
+                {
+                    
+                }
+                finally
+                {
+                    lock (info.mutex)
+                    {
+                        info.terminated = true;
+                    }
+                }
+
             }
+            return default(T);
         }
 
-        private ActorInfo CreateActor(int taskId, bool schedule, string name = null)
+        private ActorInfo CreateActor(Task actorTask, string name = null)
         {
-            if (schedule)
-            {
-                Schedule(OpType.CREATE);
-            }
             ActorId actorId = new ActorId(nextActorId++);
-            taskIdToActorId.Add(taskId, actorId);
-            ActorInfo res = new ActorInfo(actorId, name, taskId, this);
-            actors.Add(actorId, res);
-            actorList.Add(res);
-            return res;
+            taskIdToActorId.Add(actorTask.Id, actorId);
+            ActorInfo actorInfo = new ActorInfo(actorId, name, actorTask, this);
+            actors.Add(actorId, actorInfo);
+            actorList.Add(actorInfo);
+            return actorInfo;
         }
+
+        private ActorInfo CreateActor<T>(Func<T> func, string name)
+        {
+            // Ensure that calling Task has an id.
+            GetCurrentActorInfo();
+
+            Task<T> actorTask = new Task<T>(() => ActorBody(func, this, false));
+
+            Schedule(OpType.CREATE);
+
+            ActorInfo actorInfo = CreateActor(actorTask, name);
+
+            actorTask.Start();
+
+            lock (actorInfo.mutex)
+            {
+                while (actorInfo.active)
+                {
+                    Monitor.Wait(actorInfo.mutex);
+                }
+            }
+
+            return actorInfo;
+        }
+
 
         public void Schedule(OpType opType)
         {
@@ -169,6 +287,17 @@ namespace ActorTestingFramework
             }
 
             currentActor.currentOp = opType;
+
+            if (actorList.Count(info => info.enabled) == 0)
+            {
+                foreach (
+                    var waiter in
+                        actorList.Where(info => info.waitingForDeadlock))
+                {
+                    waiter.waitingForDeadlock = false;
+                    waiter.enabled = true;
+                }
+            }
 
             ActorInfo nextActor = scheduler.GetNext(actorList, currentActor);
 
@@ -201,6 +330,11 @@ namespace ActorTestingFramework
 
                 lock (currentActor.mutex)
                 {
+                    if (currentActor.terminated && opType == OpType.END)
+                    {
+                        return;
+                    }
+
                     while (!currentActor.active)
                     {
                         Monitor.Wait(currentActor.mutex);
@@ -252,18 +386,19 @@ namespace ActorTestingFramework
 
         public ActorInfo GetActorInfo(int taskId)
         {
-            CheckTerminated(OpType.INVALID);
+//            CheckTerminated(OpType.INVALID);
             
             ActorId actorId;
             taskIdToActorId.TryGetValue(taskId, out actorId);
 
             if (actorId == null)
             {
-                return CreateActor(taskId, false);
+                throw new InvalidOperationException();
             }
 
             return actors[actorId];
         }
 
+        
     }
 }

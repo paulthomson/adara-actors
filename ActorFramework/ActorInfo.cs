@@ -1,20 +1,22 @@
 ﻿
+using System.Threading.Tasks;
+
 namespace ActorFramework
 {
     public class ActorInfo
     {
         public readonly ActorId id;
-        public readonly int taskId;
+        public readonly Task task;
 
         public Mailbox<object> Mailbox { get; }
 
         public string name;
 
-        public ActorInfo(ActorId id, string name, int taskId, SimpleActorRuntime runtime)
+        public ActorInfo(ActorId id, string name, Task task, SimpleActorRuntime runtime)
         {
             this.id = id;
             this.name = name;
-            this.taskId = taskId;
+            this.task = task;
             Mailbox = new Mailbox<object>(this, runtime);
         }
 
