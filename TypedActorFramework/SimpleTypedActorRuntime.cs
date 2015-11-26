@@ -7,12 +7,12 @@ namespace TypedActorFramework
     public class SimpleTypedActorRuntime : ITypedActorRuntime
     {
         private readonly IActorRuntime actorRuntime;
-        private readonly ProxyContainer proxies;
+        private static readonly ProxyContainer proxies = new ProxyContainer();
 
         public SimpleTypedActorRuntime(IActorRuntime actorRuntime)
         {
             this.actorRuntime = actorRuntime;
-            proxies = new ProxyContainer();
+            //            proxies = new ProxyContainer();
         }
 
         #region Implementation of ITypedActorRuntime
