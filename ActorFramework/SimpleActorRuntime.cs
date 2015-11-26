@@ -68,18 +68,6 @@ namespace ActorFramework
             return GetCurrentActorInfo().Mailbox;
         }
 
-        public Task StartNew(Action action, string name = null)
-        {
-            var res = CreateActor<object>(() =>
-            {
-                action();
-                return null;
-            },
-                name);
-
-            return res.task;
-        }
-
         public Task<T> StartNew<T>(Func<T> func, string name = null)
         {
             var res = CreateActor<T>(func, name);
