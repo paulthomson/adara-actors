@@ -16,6 +16,7 @@ namespace ActorHelpers
         public ActorTaskCompletionSource(IActorRuntime r, ITypedActorRuntime typedRuntime)
         {
             runtime = r;
+            CancellationToken ct = new CancellationToken();
 
             Task = runtime.StartNew(() =>
             {

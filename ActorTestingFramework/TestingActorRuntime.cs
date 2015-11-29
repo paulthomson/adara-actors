@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using ActorInterface;
@@ -19,7 +21,7 @@ namespace ActorTestingFramework
 
         private readonly List<ActorInfo> actorList = new List<ActorInfo>();
 
-        private bool terminated;
+        private volatile bool terminated;
 
         private readonly IScheduler scheduler;
 
@@ -32,7 +34,10 @@ namespace ActorTestingFramework
 
         public void RegisterMainTask(Task mainTask)
         {
-            CreateActor(mainTask, "MainTask");
+            CreateActor(
+                mainTask,
+                new CancellationTokenSource(),
+                "MainTask");
         }
 
         public Task StartMain(Action action)
@@ -98,31 +103,14 @@ namespace ActorTestingFramework
         {
             var actorInfo = GetCurrentActorInfo();
             var otherInfo = ((Mailbox<object>) mailbox).ownerActorInfo;
-
-            if (!otherInfo.terminated)
-            {
-                actorInfo.enabled = false;
-            }
-
-            Schedule(OpType.JOIN);
-
-            Safety.Assert(otherInfo.terminated);
+            WaitHelper(actorInfo, otherInfo);
         }
 
         public void WaitForActor(Task task)
         {
             var actorInfo = GetCurrentActorInfo();
             var otherInfo = GetActorInfo(task.Id);
-
-            if (!otherInfo.terminated)
-            {
-                actorInfo.enabled = false;
-                otherInfo.terminateWaiters.Add(actorInfo);
-            }
-
-            Schedule(OpType.JOIN);
-
-            Safety.Assert(otherInfo.terminated);
+            WaitHelper(actorInfo, otherInfo);
         }
 
         public void AssignNameToCurrent(string name)
@@ -143,6 +131,24 @@ namespace ActorTestingFramework
         }
 
         #endregion
+
+        private void WaitHelper(ActorInfo actorInfo, ActorInfo otherInfo)
+        {
+            if (!otherInfo.terminated)
+            {
+                actorInfo.enabled = false;
+                otherInfo.terminateWaiters.Add(actorInfo);
+            }
+
+            Schedule(OpType.JOIN);
+
+            if (otherInfo.exceptions.Count > 0)
+            {
+                throw new AggregateException(otherInfo.exceptions);
+            }
+
+            Safety.Assert(otherInfo.terminated);
+        }
 
         public void WaitForAllActorsToTerminate()
         {
@@ -190,7 +196,21 @@ namespace ActorTestingFramework
             try
             {
                 return func();
-                // TODO: Handle cancelation.
+            }
+            catch (OperationCanceledException ex)
+            {
+                lock (info.mutex)
+                {
+
+                    if (info.cts.Token ==
+                        ex.CancellationToken &&
+                        info.cts.IsCancellationRequested)
+                    {
+                        info.cancelled = true;
+                    }
+                    info.exceptions.Add(ex);
+                }
+                throw;
             }
             catch (ActorTerminatedException)
             {
@@ -217,7 +237,7 @@ namespace ActorTestingFramework
                 }
                 catch (ActorTerminatedException)
                 {
-                    
+
                 }
                 finally
                 {
@@ -226,16 +246,23 @@ namespace ActorTestingFramework
                         info.terminated = true;
                     }
                 }
-
             }
             return default(T);
         }
 
-        private ActorInfo CreateActor(Task actorTask, string name = null)
+        private ActorInfo CreateActor(
+            Task actorTask,
+            CancellationTokenSource cts,
+            string name = null)
         {
             ActorId actorId = new ActorId(nextActorId++);
             taskIdToActorId.Add(actorTask.Id, actorId);
-            ActorInfo actorInfo = new ActorInfo(actorId, name, actorTask, this);
+            ActorInfo actorInfo = new ActorInfo(
+                actorId,
+                name,
+                actorTask,
+                cts,
+                this);
             actors.Add(actorId, actorInfo);
             actorList.Add(actorInfo);
             return actorInfo;
@@ -246,11 +273,13 @@ namespace ActorTestingFramework
             // Ensure that calling Task has an id.
             GetCurrentActorInfo();
 
-            Task<T> actorTask = new Task<T>(() => ActorBody(func, this, false));
+            CancellationTokenSource cts = new CancellationTokenSource();
+
+            Task<T> actorTask = new Task<T>(() => ActorBody(func, this, false), cts.Token);
 
             Schedule(OpType.CREATE);
 
-            ActorInfo actorInfo = CreateActor(actorTask, name);
+            ActorInfo actorInfo = CreateActor(actorTask, cts, name);
 
             actorTask.Start();
 
@@ -296,47 +325,47 @@ namespace ActorTestingFramework
                 terminated = true;
                 ActivateAllActors();
 
+                CheckTerminated(opType);
+                return;
+            }
+
+            if (nextActor == currentActor)
+            {
+                return;
+            }
+
+            Safety.Assert(currentActor.active);
+            currentActor.active = false;
+
+            lock (nextActor.mutex)
+            {
+                Safety.Assert(nextActor.enabled);
+
+                Safety.Assert(!nextActor.active);
+                nextActor.active = true;
+
+                Monitor.PulseAll(nextActor.mutex);
+            }
+
+            lock (currentActor.mutex)
+            {
+                if (currentActor.terminated && opType == OpType.END)
+                {
+                    return;
+                }
+
+                while (!currentActor.active)
+                {
+                    Monitor.Wait(currentActor.mutex);
+                }
+
                 if (CheckTerminated(opType))
                 {
                     return;
                 }
-            }
 
-            if (nextActor != currentActor)
-            {
+                Safety.Assert(currentActor.enabled);
                 Safety.Assert(currentActor.active);
-                currentActor.active = false;
-
-                lock (nextActor.mutex)
-                {
-                    Safety.Assert(nextActor.enabled);
-
-                    Safety.Assert(!nextActor.active);
-                    nextActor.active = true;
-
-                    Monitor.PulseAll(nextActor.mutex);
-                }
-
-                lock (currentActor.mutex)
-                {
-                    if (currentActor.terminated && opType == OpType.END)
-                    {
-                        return;
-                    }
-
-                    while (!currentActor.active)
-                    {
-                        Monitor.Wait(currentActor.mutex);
-                    }
-
-                    if (CheckTerminated(opType))
-                    {
-                        return;
-                    }
-
-                    Safety.Assert(currentActor.enabled);
-                    Safety.Assert(currentActor.active);
-                }
             }
         }
 
@@ -355,7 +384,7 @@ namespace ActorTestingFramework
 
         private bool CheckTerminated(OpType opType)
         {
-            if (terminated && opType != OpType.END)
+            if (terminated)
             {
                 throw new ActorTerminatedException();
             }
