@@ -1,10 +1,14 @@
-﻿using ActorInterface;
+﻿using System.Threading.Tasks;
+using ActorInterface;
 
 namespace TypedActorInterface
 {
     public interface ITypedActorRuntime
     {
-        T Create<T>(T typeActorInstance, string name = null) 
+        T Create<T>(T typedActorInstance, string name = null) 
+            where T : ITypedActor;
+
+        T CreateTask<T, TResult>(T typedActorInstance, out Task<TResult> task, string name = null)
             where T : ITypedActor;
 
         T ProxyFromMailbox<T>(IMailbox<object> mailbox) 

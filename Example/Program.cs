@@ -22,10 +22,31 @@ namespace Example
 
                 // Creates an actor and yields its mailbox.
                 // Only the owner of a mailbox can call Receive.
-                // All actors can Send.
+                // Any actor can Send to a mailbox.
                 // Every actor has its own mailbox that stores objects.
                 IMailbox<object> helloActorMailbox =
-                    runtime.Create(new HelloActor());
+                    runtime.Create(() =>
+                    {
+                        IMailbox<object> myMailbox = runtime.CurrentMailbox();
+
+                        object msg = myMailbox.Receive();
+
+                        Console.WriteLine(msg);
+
+                        msg = myMailbox.Receive();
+
+                        Console.WriteLine(msg);
+
+                        IMailbox<string> mailbox =
+                            (IMailbox<string>) myMailbox.Receive();
+
+                        mailbox.Send("message for separate mailbox");
+
+                        Console.WriteLine(
+                            $"I am actor with mailbox {myMailbox} and I am about to terminate.");
+
+                        return 1;
+                    });
 
                 helloActorMailbox.Send("hello");
                 helloActorMailbox.Send("world");
@@ -102,7 +123,29 @@ namespace Example
                 testLauncher.Execute((runtime2, testingRuntime) =>
                 {
                     IMailbox<object> helloActorMailbox =
-                        runtime2.Create(new HelloActor());
+                        runtime2.Create(() =>
+                        {
+                            IMailbox<object> myMailbox =
+                                runtime2.CurrentMailbox();
+
+                            object msg = myMailbox.Receive();
+
+                            Console.WriteLine(msg);
+
+                            msg = myMailbox.Receive();
+
+                            Console.WriteLine(msg);
+
+                            IMailbox<string> mailbox =
+                                (IMailbox<string>) myMailbox.Receive();
+
+                            mailbox.Send("message for separate mailbox");
+
+                            Console.WriteLine(
+                                $"I am actor with mailbox {myMailbox} and I am about to terminate.");
+
+                            return 1;
+                        });
 
                     helloActorMailbox.Send("hello");
                     helloActorMailbox.Send("world");

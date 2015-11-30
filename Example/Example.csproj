@@ -44,7 +44,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AnswerPhone.cs" />
-    <Compile Include="HelloActor.cs" />
     <Compile Include="HumanEatParams.cs" />
     <Compile Include="HumanProxy.cs" />
     <Compile Include="IAnswerPhone.cs" />

@@ -20,6 +20,11 @@ namespace ActorFramework
 
         #region Implementation of IActorRuntime
 
+        public void CancelSelf()
+        {
+            throw new NotImplementedException();
+        }
+
         public void RegisterMainTask(Task mainTask)
         {
             CreateActor(mainTask, "MainTask");
@@ -41,13 +46,9 @@ namespace ActorFramework
             return task;
         }
 
-        public IMailbox<object> Create(IActor actorInstance, string name = null)
+        public IMailbox<object> Create<TResult>(Func<TResult> entryPoint, string name = null)
         {
-            var res = CreateActor<object>(() =>
-            {
-                actorInstance.EntryPoint(this);
-                return null;
-            }, name);
+            var res = CreateActor(entryPoint, name);
 
             return res.Mailbox;
         }
@@ -70,7 +71,7 @@ namespace ActorFramework
 
         public Task<T> StartNew<T>(Func<T> func, string name = null)
         {
-            var res = CreateActor<T>(func, name);
+            var res = CreateActor(func, name);
 
             return (Task<T>) res.task;
         }

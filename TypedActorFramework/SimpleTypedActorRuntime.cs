@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using ActorInterface;
 using TypedActorInterface;
 
@@ -21,9 +22,29 @@ namespace TypedActorFramework
             where T : ITypedActor
         {
             var mailbox =
-                actorRuntime.Create(
-                    new TypeActorActor(),
+                actorRuntime.Create<object>(
+                    () =>
+                    {
+                        TypedActorEntryPoint(actorRuntime);
+                        return null;
+                    },
                     name ?? typeof (T).Name);
+
+            mailbox.Send(typedActorInstance);
+            return GetOrCreateProxy<T>(mailbox);
+        }
+
+        public T CreateTask<T, TResult>(T typedActorInstance, out Task<TResult> task, string name = null) 
+            where T : ITypedActor
+        {
+            task = actorRuntime.StartNew(() =>
+            {
+                TypedActorEntryPoint(actorRuntime);
+                return default(TResult);
+            });
+
+            var mailbox =
+                actorRuntime.MailboxFromTask(task);
             mailbox.Send(typedActorInstance);
             return GetOrCreateProxy<T>(mailbox);
         }
@@ -51,6 +72,20 @@ namespace TypedActorFramework
                 proxyType,
                 mailbox);
             return res;
+        }
+
+        public static object TypedActorEntryPoint(IActorRuntime runtime)
+        {
+            var mailbox = runtime.CurrentMailbox();
+
+            ITypedActor typedActor = (ITypedActor) mailbox.Receive();
+
+            while (true)
+            {
+                var msg = (ICallable) mailbox.Receive();
+                msg.Call(typedActor);
+            }
+
         }
 
     }

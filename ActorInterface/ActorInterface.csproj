@@ -58,8 +58,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ActionActor.cs" />
-    <Compile Include="IActor.cs" />
     <Compile Include="IActorId.cs" />
     <Compile Include="IActorRuntime.cs" />
     <Compile Include="IMailbox.cs" />

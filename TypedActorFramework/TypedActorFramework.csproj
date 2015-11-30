@@ -76,7 +76,6 @@
     <Compile Include="ProxyContainer.cs" />
     <Compile Include="Safety.cs" />
     <Compile Include="SimpleTypedActorRuntime.cs" />
-    <Compile Include="TypeActorActor.cs" />
     <Compile Include="Util.cs" />
   </ItemGroup>
   <ItemGroup>

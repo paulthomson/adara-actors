@@ -5,11 +5,11 @@ namespace ActorInterface
 {
     public interface IActorRuntime
     {
-        IMailbox<object> Create(IActor actorInstance, string name = null);
+        IMailbox<object> Create<TResult>(Func<TResult> entryPoint, string name = null);
         IMailbox<T> CreateMailbox<T>();
         IMailbox<object> CurrentMailbox();
 
-        Task<T> StartNew<T>(Func<T> func, string name = null);
+        Task<TResult> StartNew<TResult>(Func<TResult> entryPoint, string name = null);
 
         void Sleep(int millisecondsTimeout);
 
@@ -17,6 +17,8 @@ namespace ActorInterface
 
         void WaitForActor(IMailbox<object> mailbox);
         void WaitForActor(Task task);
+
+        void CancelSelf();
 
         void RegisterMainTask(Task mainTask);
 

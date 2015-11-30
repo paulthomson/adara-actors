@@ -56,13 +56,9 @@ namespace ActorTestingFramework
             return task;
         }
 
-        public IMailbox<object> Create(IActor actorInstance, string name = null)
+        public IMailbox<object> Create<TResult>(Func<TResult> entryPoint, string name = null)
         {
-            var res = CreateActor<object>(() =>
-            {
-                actorInstance.EntryPoint(this);
-                return null;
-            }, name);
+            var res = CreateActor(entryPoint, name);
 
             return res.Mailbox;
         }
@@ -111,6 +107,13 @@ namespace ActorTestingFramework
             var actorInfo = GetCurrentActorInfo();
             var otherInfo = GetActorInfo(task.Id);
             WaitHelper(actorInfo, otherInfo);
+        }
+
+        public void CancelSelf()
+        {
+            var actorInfo = GetCurrentActorInfo();
+            actorInfo.cts.Cancel();
+            actorInfo.cts.Token.ThrowIfCancellationRequested();
         }
 
         public void AssignNameToCurrent(string name)
