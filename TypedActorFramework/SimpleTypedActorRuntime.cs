@@ -16,6 +16,11 @@ namespace TypedActorFramework
             //            proxies = new ProxyContainer();
         }
 
+        public static void SaveDynamicProxyModule()
+        {
+            proxies.SaveModule();
+        }
+
         #region Implementation of ITypedActorRuntime
 
         public T Create<T>(T typedActorInstance, string name = null)
@@ -70,7 +75,8 @@ namespace TypedActorFramework
             Type proxyType = proxies.GetProxyType(typeof(T));
             var res = (T)Activator.CreateInstance(
                 proxyType,
-                mailbox);
+                mailbox,
+                actorRuntime);
             return res;
         }
 

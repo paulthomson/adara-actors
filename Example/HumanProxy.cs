@@ -1,4 +1,6 @@
-﻿using TypedActorFramework;
+﻿using System.Runtime.ExceptionServices;
+using ActorInterface;
+using TypedActorFramework;
 
 namespace Example
 {
@@ -7,23 +9,30 @@ namespace Example
 
     public class HumanProxy : IHuman
     {
-        private ActorId<IHuman> id;
-        private IActorRuntimeInternal runtime;
+        private IMailbox<object> mailbox;
+        private IActorRuntime runtime;
 
-        public HumanProxy(ActorId<IHuman> id, IActorRuntimeInternal runtime)
+        public HumanProxy(ActorId<IHuman> id, IActorRuntime runtime)
         {
-            this.id = id;
+//            this.id = id;
             this.runtime = runtime;
         }
 
         #region Implementation of IHuman
 
-        public void Eat(int a, double b, object o, IHuman h)
+        public int Eat(int a, double b, object o, IHuman h)
         {
-            var hep = new HumanEatParams(runtime, a, b, o, h);
+            var resultMailbox = runtime.CreateMailbox<CallResult<int>>();
+            var hep = new HumanEatParams(a, b, o, h, resultMailbox);
+            mailbox.Send(hep);
+            var callResult = resultMailbox.Receive();
 
-            runtime.Send(this, hep);
-//            hep.Call(this, runtime);
+            if (callResult.exception != null)
+            {
+                ExceptionDispatchInfo.Capture(callResult.exception).Throw();
+            }
+
+            return callResult.result;
         }
 
         #endregion

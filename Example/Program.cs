@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using ActorFramework;
@@ -12,6 +13,7 @@ namespace Example
 {
     internal class Program
     {
+
         private static void Main(string[] args)
         {
             IActorRuntime runtime = new SimpleActorRuntime();
@@ -86,19 +88,32 @@ namespace Example
                 phoner2.Go();
                 phoner1.Go();
 
-                // We use a (lower level) additional mailbox to receive results.
-                // There are other possible approaches.
-                // E.g. methods that have return values could be translated into
-                // something that is equivalent to the code below.
+                // We can use a (lower level) additional mailbox to receive results.
                 IMailbox<string> returnMailbox = runtime.CreateMailbox<string>();
 
                 answerPhone.CheckMessages(returnMailbox);
-                Console.WriteLine("\nAttempt 1:\n\n" + returnMailbox.Receive());
+                Console.WriteLine(returnMailbox.Receive());
 
-                Thread.Sleep(1000);
 
-                answerPhone.CheckMessages(returnMailbox);
-                Console.WriteLine("\nAttempt 2:\n\n" + returnMailbox.Receive());
+                // Or we can call methods without return types, which
+                // is similar to the above (current actor is blocked).
+                string res = answerPhone.CheckMessagesSync(55, "temp");
+
+                Console.WriteLine(res);
+
+                // If a method with a return type throws an exception
+                // (when executing on another actor), the exception is
+                // sent back to us (the caller) and thrown.
+                try
+                {
+                    res = answerPhone.CheckMessagesSync(56, "temp");
+                }
+                catch (ArgumentException ex)
+                {
+                    // The stack trace includes the stack frames from the
+                    // other actor.
+                    Console.WriteLine(ex);
+                }
             });
 
             mainTask.Wait();

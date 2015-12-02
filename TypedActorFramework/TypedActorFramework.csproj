@@ -69,6 +69,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ActorId.cs" />
+    <Compile Include="CallResult.cs" />
     <Compile Include="IActorRuntimeInternal.cs" />
     <Compile Include="ICallable.cs" />
     <Compile Include="Program.cs" />

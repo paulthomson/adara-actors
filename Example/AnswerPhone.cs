@@ -27,6 +27,23 @@ namespace Example
             res.Send(sb.ToString());
         }
 
+        public string CheckMessagesSync(int a, string t)
+        {
+            StringBuilder sb = new StringBuilder();
+            const int v = 55;
+            if (a != v)
+            {
+                throw new ArgumentException($"{nameof(a)} must be {v}");
+            }
+            sb.Append(a + ", ");
+            sb.Append(t + " ---\n\n");
+            foreach (var m in _messages)
+            {
+                sb.Append($"From: {m.Item1};\n Message: {m.Item2}\n\n");
+            }
+            return sb.ToString();
+        }
+
         #endregion
     }
 }

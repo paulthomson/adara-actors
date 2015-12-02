@@ -7,5 +7,7 @@ namespace Example
     {
         void LeaveMessage(string name, string message);
         void CheckMessages(IMailbox<string> res);
+
+        string CheckMessagesSync(int a, string t);
     }
 }
