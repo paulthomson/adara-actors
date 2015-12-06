@@ -58,7 +58,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ActorHelper.cs" />
     <Compile Include="ActorTaskCompletionSource.cs" />
     <Compile Include="ITaskCompletionSource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
