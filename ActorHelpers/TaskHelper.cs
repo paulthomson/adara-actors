@@ -1,14 +1,34 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using ActorInterface;
+using TypedActorInterface;
 
-namespace ActorInterface.HelperExtensions
+namespace ActorHelpers
 {
-    public static class Util
+    public static class TaskHelper
     {
+        public static IActorRuntime runtime;
+        public static ITypedActorRuntime typedRuntime;
+
+        public static void Sleep(int milliseconds)
+        {
+            runtime.Sleep(milliseconds);
+        }
+
+        public static Task Delay(int milliseconds)
+        {
+            runtime.Sleep(milliseconds);
+            return runtime.StartNew(() => (object)null);
+        }
+
+        public static Task Delay(TimeSpan timeSpan)
+        {
+            return Delay((int) timeSpan.TotalMilliseconds);
+        }
+
         public static Task<T> StartNewActor<T>(
             this TaskFactory tf,
-            IActorRuntime runtime,
             Func<T> func)
         {
             return runtime.StartNew(func);
@@ -16,7 +36,6 @@ namespace ActorInterface.HelperExtensions
 
         public static Task StartNewActor(
             this TaskFactory tf,
-            IActorRuntime runtime,
             Action action)
         {
             return runtime.StartNew<object>(() =>
@@ -28,21 +47,19 @@ namespace ActorInterface.HelperExtensions
 
         public static Task<T> StartNewActor<T>(
             this TaskFactory tf,
-            IActorRuntime runtime,
             Func<T> func,
             CancellationToken ct)
         {
             return runtime.StartNew(func);
         }
 
-        public static void WaitActor(this Task task, IActorRuntime runtime)
+        public static void WaitActor(this Task task)
         {
             runtime.WaitForActor(task);
         }
 
         public static void ContinueWithActor<TResult, TNewResult>(
             this Task<TResult> task,
-            IActorRuntime runtime,
             Task<TNewResult> nextText)
         {
             runtime.StartNew<object>(() =>
@@ -54,7 +71,6 @@ namespace ActorInterface.HelperExtensions
 
         public static Task<TResult> ContinueWithActor<TResult>(
             this Task task,
-            IActorRuntime runtime,
             Func<Task, TResult> continuationFunction)
         {
             return runtime.StartNew(() =>
@@ -66,7 +82,6 @@ namespace ActorInterface.HelperExtensions
 
         public static Task<TNewResult> ContinueWithActor<TResult, TNewResult>(
             this Task<TResult> task,
-            IActorRuntime runtime,
             Func<Task<TResult>, TNewResult> continuationFunction)
         {
             return runtime.StartNew(() =>
@@ -78,7 +93,6 @@ namespace ActorInterface.HelperExtensions
 
         public static Task ContinueWithActor<TResult>(
             this Task<TResult> task,
-            IActorRuntime runtime,
             Action<Task<TResult>, object> continuationAction,
             object state,
             CancellationToken cancellationToken)
@@ -91,10 +105,10 @@ namespace ActorInterface.HelperExtensions
             });
         }
 
-        public static T ResultActor<T>(this Task<T> task, IActorRuntime runtime)
+        public static T ResultActor<T>(this Task<T> task)
         {
             runtime.WaitForActor(task);
-            return task.Result;
+            return task.ResultActor();
         }
     }
 }
