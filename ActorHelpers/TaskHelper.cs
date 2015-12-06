@@ -108,7 +108,7 @@ namespace ActorHelpers
         public static T ResultActor<T>(this Task<T> task)
         {
             runtime.WaitForActor(task);
-            return task.ResultActor();
+            return task.Result;
         }
     }
 }
