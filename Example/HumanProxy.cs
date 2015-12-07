@@ -20,21 +20,38 @@ namespace Example
 
         #region Implementation of IHuman
 
-        public int Eat(int a, double b, object o, IHuman h)
+        public int Eat(ref int a, double b, object o, IHuman h)
         {
-            var resultMailbox = runtime.CreateMailbox<CallResult<int>>();
+            var resultMailbox = runtime.CreateMailbox<object>();
             var hep = new HumanEatParams(a, b, o, h, resultMailbox);
             mailbox.Send(hep);
-            var callResult = resultMailbox.Receive();
+            hep = (HumanEatParams) resultMailbox.Receive();
 
-            if (callResult.exception != null)
+            a = hep.a;
+
+            var ex = hep.exception;
+
+            if (ex != null)
             {
-                ExceptionDispatchInfo.Capture(callResult.exception).Throw();
+                ExceptionDispatchInfo.Capture(ex).Throw();
             }
 
-            return callResult.result;
+            return hep.result;
         }
 
         #endregion
+
+        public void TestMethod(out MyStruct s1, MyStruct s2)
+        {
+            s1 = s2;
+        }
+        
+    }
+
+    public struct MyStruct
+    {
+        private int a;
+        private int b;
+        private int c;
     }
 }

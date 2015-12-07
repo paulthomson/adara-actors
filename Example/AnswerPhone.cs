@@ -27,8 +27,9 @@ namespace Example
             res.Send(sb.ToString());
         }
 
-        public string CheckMessagesSync(int a, string t)
+        public string CheckMessagesSync(int a, out int b, string t)
         {
+            b = 3;
             StringBuilder sb = new StringBuilder();
             const int v = 55;
             if (a != v)

@@ -94,25 +94,30 @@ namespace Example
                 answerPhone.CheckMessages(returnMailbox);
                 Console.WriteLine(returnMailbox.Receive());
 
-
-                // Or we can call methods without return types, which
+                // Or we can call methods that return a value, which
                 // is similar to the above (current actor is blocked).
-                string res = answerPhone.CheckMessagesSync(55, "temp");
+                // Methods with a return value can also have `out` and `ref` parameters.
+                int b;
+                string res = answerPhone.CheckMessagesSync(55, out b, "temp");
 
                 Console.WriteLine(res);
+
+                Console.WriteLine($"b is {b}"); // Should be 3
 
                 // If a method with a return type throws an exception
                 // (when executing on another actor), the exception is
                 // sent back to us (the caller) and thrown.
+                b = 0;
                 try
                 {
-                    res = answerPhone.CheckMessagesSync(56, "temp");
+                    res = answerPhone.CheckMessagesSync(56, out b, "temp");
                 }
                 catch (ArgumentException ex)
                 {
                     // The stack trace includes the stack frames from the
                     // other actor.
                     Console.WriteLine(ex);
+                    Console.WriteLine($"b is {b}"); // Should be 3
                 }
             });
 

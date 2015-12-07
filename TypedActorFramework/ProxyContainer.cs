@@ -116,8 +116,28 @@ namespace TypedActorFramework
 
             foreach (var m in methods)
             {
-                Type messageClassType = CreateMessageClass(mb, actorType, m);
-                CreateMethodBody(tb, m, messageClassType, fieldActorMailbox, fieldRuntime);
+                List<FieldBuilder> methodParamFields = new List<FieldBuilder>();
+                FieldBuilder resultField = null;
+                FieldBuilder resultMailboxField = null;
+                FieldBuilder exceptionField = null;
+
+                Type messageClassType = CreateMessageClass(mb,
+                    actorType,
+                    m,
+                    methodParamFields,
+                    ref resultField,
+                    ref resultMailboxField,
+                    ref exceptionField);
+
+                CreateMethodBody(tb,
+                    m,
+                    messageClassType,
+                    fieldActorMailbox,
+                    fieldRuntime,
+                    methodParamFields,
+                    resultField,
+                    resultMailboxField,
+                    exceptionField);
             }
 
             Type proxyType = tb.CreateType();
@@ -126,22 +146,13 @@ namespace TypedActorFramework
             return proxyType;
         }
 
-        private static Type CreateMessageClass(ModuleBuilder mb, Type actorType, MethodInfo m)
+        private static Type CreateMessageClass(ModuleBuilder mb, Type actorType, MethodInfo m, List<FieldBuilder> methodParamFields, ref FieldBuilder resultField, ref FieldBuilder resultMailboxField, ref FieldBuilder exceptionField)
         {
             Safety.Assert(m.DeclaringType != null);
 
-            const string resultMailboxFieldName = "$resultMailbox";
-
             Type returnType = null;
-            Type callResultType = null;
-            Type mailboxType = null;
+            Type mailboxResultType = null;
 
-            if (m.ReturnType != typeof(void))
-            {
-                returnType = m.ReturnType;
-                callResultType = typeof(CallResult<>).MakeGenericType(returnType);
-                mailboxType = typeof(IMailbox<>).MakeGenericType(callResultType);
-            }
 
             TypeBuilder tb = mb.DefineType(
                 $"{m.DeclaringType.FullName}${m.Name}$Message",
@@ -149,44 +160,52 @@ namespace TypedActorFramework
 
             tb.AddInterfaceImplementation(typeof(ICallable));
 
-            List<Type> paramTypes =
-                m.GetParameters().Select(p => p.ParameterType).ToList();
+            if (m.ReturnType != typeof(void))
+            {
+                returnType = m.ReturnType;
+                mailboxResultType = typeof(IMailbox<object>);
+            }
 
-            List<FieldBuilder> fields = new List<FieldBuilder>();
+            List<FieldBuilder> constructorFields = new List<FieldBuilder>();
+
+            
 
             foreach (var p in m.GetParameters())
             {
                 Type fieldType = p.ParameterType;
 
-                fields.Add(
+                methodParamFields.Add(
                     tb.DefineField(
                         p.Name,
-                        fieldType,
+                        fieldType.IsByRef ? fieldType.GetElementType() : fieldType,
                         FieldAttributes.Public));
             }
 
-            FieldBuilder resultMailboxField = null;
+            constructorFields.AddRange(methodParamFields);
+
             if (returnType != null)
             {
-                resultMailboxField =
-                    tb.DefineField(resultMailboxFieldName,
-                        mailboxType,
+                resultField =
+                    tb.DefineField("$result",
+                        returnType,
                         FieldAttributes.Public);
-                fields.Add(resultMailboxField);
-                paramTypes.Add(resultMailboxField.FieldType);
+                resultMailboxField = tb.DefineField("$resultMailbox",
+                    mailboxResultType,
+                    FieldAttributes.Public);
+                exceptionField = tb.DefineField("$exception",
+                    typeof (Exception),
+                    FieldAttributes.Public);
+
+                constructorFields.Add(resultMailboxField);
             }
 
-            List<Type> constructorParamTypes = new List<Type>();
-//            constructorParamTypes.Add(typeof(IActorRuntimeInternal));
-            constructorParamTypes.AddRange(paramTypes);
             
             // Constructor
-
 
             ConstructorBuilder ctor = tb.DefineConstructor(
                 MethodAttributes.Public | MethodAttributes.HideBySig,
                 CallingConventions.Standard,
-                constructorParamTypes.ToArray());
+                constructorFields.Select(builder => builder.FieldType).ToArray());
 
             ILGenerator ctorIL = ctor.GetILGenerator();
 
@@ -196,11 +215,11 @@ namespace TypedActorFramework
 
             const int firstParamPos = 1; // excluding "this" (0) 
 
-            for (int i = 0; i < fields.Count; ++i)
+            for (int i = 0; i < constructorFields.Count; ++i)
             {
                 ctorIL.Emit(OpCodes.Ldarg_0);
                 ctorIL.Ldarg(firstParamPos + i);
-                ctorIL.Emit(OpCodes.Stfld, fields[i]);
+                ctorIL.Emit(OpCodes.Stfld, constructorFields[i]);
             }
             ctorIL.Emit(OpCodes.Ret);
 
@@ -217,35 +236,32 @@ namespace TypedActorFramework
 
             var callIL = methodBuilder.GetILGenerator();
 
-            LocalBuilder resLocal = null;
-            LocalBuilder callResLocal = null;
             LocalBuilder exceptionLocal = null;
 
             Label endOfMethod = default(Label);
 
             if (returnType != null)
             {
-                resLocal = callIL.DeclareLocal(returnType);
-                callResLocal = callIL.DeclareLocal(callResultType);
-                exceptionLocal = callIL.DeclareLocal(typeof (Exception));
+                exceptionLocal = callIL.DeclareLocal(exceptionField.FieldType);
                 endOfMethod = callIL.DefineLabel();
 
                 callIL.BeginExceptionBlock();
+                callIL.Ldarg(0);
             }
 
             callIL.Ldarg(1);
             callIL.Emit(OpCodes.Castclass, actorType);
 
-            // last field might be result mailbox
-            int numFieldsExcludingMailbox = returnType == null
-                ? fields.Count
-                : fields.Count - 1;
-            for (int i = 0; i < numFieldsExcludingMailbox; ++i)
+            for(int i = 0; i < methodParamFields.Count; ++i)
             {
-                    callIL.Ldarg(0);
-                    // [this message object, other params ... , actor instance]
-                    callIL.Emit(OpCodes.Ldfld, fields[i]);
-                    // [field value, other params ... , actor instance]
+                callIL.Ldarg(0);
+                // [this message object, other params ... , actor instance]
+                callIL.Emit(
+                    m.GetParameters()[i].ParameterType.IsByRef
+                        ? OpCodes.Ldflda
+                        : OpCodes.Ldfld,
+                    methodParamFields[i]);
+                // [field value, other params ... , actor instance]
             }
 
             // [params, actor instance]
@@ -260,66 +276,33 @@ namespace TypedActorFramework
             {
                 /////// callIL.Emit(OpCodes.);
 
-                
-                // [res]
-                callIL.Emit(OpCodes.Stloc, resLocal);
-                // []
-                callIL.Emit(OpCodes.Newobj,
-                    callResultType.GetConstructors().Single());
-                // [ callRes ]
-                callIL.Emit(OpCodes.Stloc, callResLocal);
-                // [  ]
-                callIL.Emit(OpCodes.Ldloc, callResLocal);
-                // [ callRes ]
-                callIL.Emit(OpCodes.Ldloc, resLocal);
-                // [ res, callRes ]
-                callIL.Emit(OpCodes.Stfld,
-                    callResultType.GetField(
-                        nameof(CallResult<object>.result)));
-                // []
+                callIL.Emit(OpCodes.Stfld, resultField);
                 callIL.Ldarg(0);
                 callIL.Emit(OpCodes.Ldfld, resultMailboxField);
-                // [ mailbox ]
-                callIL.Emit(OpCodes.Ldloc, callResLocal);
-                // [ callRes, mailbox ]
+                callIL.Ldarg(0);
                 callIL.Emit(OpCodes.Callvirt,
-                    mailboxType.GetMethod(nameof(IMailbox<object>.Send)));
-                // [] 
-                
+                    mailboxResultType.GetMethod(nameof(IMailbox<object>.Send)));
+
                 callIL.BeginCatchBlock(typeof(Exception));
 
                 // [ ex ]
                 callIL.Emit(OpCodes.Stloc, exceptionLocal);
-                // []
-                callIL.Emit(OpCodes.Newobj,
-                    callResultType.GetConstructors().Single());
-                callIL.Emit(OpCodes.Stloc, callResLocal);
-                callIL.Emit(OpCodes.Ldloc, callResLocal);
+                callIL.Ldarg(0);
                 callIL.Emit(OpCodes.Ldloc, exceptionLocal);
-                // [ ex, callRes ]
-                callIL.Emit(OpCodes.Stfld,
-                    callResultType.GetField(
-                        nameof(CallResult<object>.exception)));
-                // [] 
+                callIL.Emit(OpCodes.Stfld, exceptionField);
                 callIL.Ldarg(0);
                 callIL.Emit(OpCodes.Ldfld, resultMailboxField);
-                // [ mailbox ]
-                callIL.Emit(OpCodes.Ldloc, callResLocal);
-                // [ callRes, mailbox ] 
+                callIL.Ldarg(0);
                 callIL.Emit(OpCodes.Callvirt,
-                    mailboxType.GetMethod(nameof(IMailbox<object>.Send)));
-                // []
+                    mailboxResultType.GetMethod(nameof(IMailbox<object>.Send)));
 
                 callIL.EndExceptionBlock();
 
                 callIL.MarkLabel(endOfMethod);
                 // [ ]
                 callIL.Emit(OpCodes.Ret);
-                
             }
 
-
-            
 
             // Method ToString
             // public hidebysig virtual instance
@@ -349,7 +332,8 @@ namespace TypedActorFramework
             MethodInfo mi,
             Type messageClassType,
             FieldBuilder fieldActorMailbox,
-            FieldBuilder fieldRuntime)
+            FieldBuilder fieldRuntime,
+            List<FieldBuilder> methodParamFields, FieldBuilder resultField, FieldBuilder resultMailboxField, FieldBuilder exceptionField)
         {
             Type[] paramTypes =
                 mi.GetParameters().Select(p => p.ParameterType).ToArray();
@@ -364,14 +348,12 @@ namespace TypedActorFramework
                 paramTypes);
 
             Type returnType = null;
-            Type callResultType = null;
             Type mailboxType = null;
 
             if (mi.ReturnType != typeof(void))
             {
                 returnType = mi.ReturnType;
-                callResultType = typeof(CallResult<>).MakeGenericType(returnType);
-                mailboxType = typeof(IMailbox<>).MakeGenericType(callResultType);
+                mailboxType = typeof(IMailbox<object>);
             }
 
             var ilGen = methodBuilder.GetILGenerator();
@@ -399,11 +381,8 @@ namespace TypedActorFramework
             }
             else
             {
-                var mailboxLocal =
-                    ilGen.DeclareLocal(
-                        typeof (IMailbox<>).MakeGenericType(callResultType));
-
-                var callResultLocal = ilGen.DeclareLocal(callResultType);
+                var mailboxLocal = ilGen.DeclareLocal(mailboxType);
+                var exceptionLocal = ilGen.DeclareLocal(exceptionField.FieldType);
 
                 var labelAfterThrow = ilGen.DefineLabel();
 
@@ -412,12 +391,13 @@ namespace TypedActorFramework
                 ilGen.Emit(OpCodes.Callvirt,
                     typeof (IActorRuntime).GetMethod(
                         nameof(IActorRuntime.CreateMailbox))
-                        .MakeGenericMethod(callResultType));
+                        .MakeGenericMethod(typeof(object)));
                 ilGen.Emit(OpCodes.Stloc, mailboxLocal);
                 LoadArguments(paramTypes, ilGen);
                 ilGen.Emit(OpCodes.Ldloc, mailboxLocal);
                 ilGen.Emit(OpCodes.Newobj,
                     messageClassType.GetConstructors().Single());
+
                 ilGen.Emit(OpCodes.Stloc, messageLocal);
                 ilGen.Ldarg(0);
                 ilGen.Emit(OpCodes.Ldfld, fieldActorMailbox);
@@ -425,20 +405,36 @@ namespace TypedActorFramework
                 ilGen.Emit(OpCodes.Callvirt,
                     typeof(IMailbox<object>).GetMethod(
                         nameof(IMailbox<object>.Send)));
+
                 ilGen.Emit(OpCodes.Ldloc, mailboxLocal);
                 ilGen.Emit(OpCodes.Callvirt,
                     mailboxType.GetMethod(nameof(IMailbox<object>.Receive)));
-                ilGen.Emit(OpCodes.Stloc, callResultLocal);
-                ilGen.Emit(OpCodes.Ldloc, callResultLocal);
-                ilGen.Emit(OpCodes.Ldfld,
-                    callResultType.GetField(nameof(CallResult<object>.exception)));
+                ilGen.Emit(OpCodes.Castclass, messageClassType);
+                ilGen.Emit(OpCodes.Stloc, messageLocal);
+
+                // set by ref params
+                for (int i = 0; i < paramTypes.Length; i++)
+                {
+                    if (paramTypes[i].IsByRef)
+                    {
+                        // load address of arg
+                        ilGen.Ldarg(i+1);
+                        ilGen.Emit(OpCodes.Ldloc, messageLocal);
+                        ilGen.Emit(OpCodes.Ldfld, methodParamFields[i]);
+                        ilGen.Emit(OpCodes.Stobj, methodParamFields[i].FieldType);
+                    }
+                }
+
+                
+                ilGen.Emit(OpCodes.Ldloc, messageLocal);
+                ilGen.Emit(OpCodes.Ldfld, exceptionField);
+                ilGen.Emit(OpCodes.Stloc, exceptionLocal);
+                ilGen.Emit(OpCodes.Ldloc, exceptionLocal);
                 ilGen.Emit(OpCodes.Ldnull);
                 ilGen.Emit(OpCodes.Cgt_Un);
                 ilGen.Emit(OpCodes.Brfalse_S, labelAfterThrow);
 
-                ilGen.Emit(OpCodes.Ldloc, callResultLocal);
-                ilGen.Emit(OpCodes.Ldfld,
-                    callResultType.GetField(nameof(CallResult<object>.exception)));
+                ilGen.Emit(OpCodes.Ldloc, exceptionLocal);
                 ilGen.Emit(OpCodes.Call,
                     typeof (ExceptionDispatchInfo).GetMethod(
                         nameof(ExceptionDispatchInfo.Capture)));
@@ -448,9 +444,8 @@ namespace TypedActorFramework
                 
 
                 ilGen.MarkLabel(labelAfterThrow);
-                ilGen.Emit(OpCodes.Ldloc, callResultLocal);
-                ilGen.Emit(OpCodes.Ldfld,
-                    callResultType.GetField(nameof(CallResult<object>.result)));
+                ilGen.Emit(OpCodes.Ldloc, messageLocal);
+                ilGen.Emit(OpCodes.Ldfld, resultField);
                 ilGen.Emit(OpCodes.Ret);
             }
         }

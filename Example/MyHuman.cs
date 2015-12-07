@@ -6,9 +6,10 @@ namespace Example
     {
         #region Implementation of IHuman
 
-        public int Eat(int a, double b, object o, IHuman h)
+        public int Eat(ref int a, double b, object o, IHuman h)
         {
             Console.WriteLine($"I ate {a}, {b}, {o}, {h}");
+            a = 2;
             return 1;
         }
 

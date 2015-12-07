@@ -17,15 +17,17 @@ namespace Example
         public object o;
         public IHuman h;
 
-        public IMailbox<CallResult<int>> resultMailbox;
+        public IMailbox<object> resultMailbox;
 
+        public int result;
+        public Exception exception;
 
         public HumanEatParams(
             int a,
             double b,
             object o,
             IHuman h,
-            IMailbox<CallResult<int>> resultMailbox)
+            IMailbox<object> resultMailbox)
         {
             this.a = a;
             this.b = b;
@@ -38,16 +40,13 @@ namespace Example
         {
             try
             {
-                var res = ((IHuman) t).Eat(a, b, o, h);
-                var callRes = new CallResult<int>();
-                callRes.result = res;
-                resultMailbox.Send(callRes);
+                result = ((IHuman) t).Eat(ref a, b, o, h);
+                resultMailbox.Send(this);
             }
             catch (Exception ex)
             {
-                var callRes = new CallResult<int>();
-                callRes.exception = ex;
-                resultMailbox.Send(callRes);
+                exception = ex;
+                resultMailbox.Send(this);
             }
         }
 
