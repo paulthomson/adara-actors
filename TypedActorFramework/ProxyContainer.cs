@@ -11,10 +11,11 @@ namespace TypedActorFramework
 {
     public class ProxyContainer
     {
-        private Dictionary<Type, Type> proxyTypes;
+        private readonly Dictionary<Type, Type> proxyTypes;
         private readonly AssemblyName aName;
         private readonly AssemblyBuilder ab;
         private readonly ModuleBuilder mb;
+        private readonly object mutex;
 
         public ProxyContainer()
         {
@@ -30,6 +31,8 @@ namespace TypedActorFramework
             mb = ab.DefineDynamicModule(
                 aName.Name,
                 aName.Name + ".dll");
+
+            mutex = new object();
         }
 
         /// <summary>
@@ -37,21 +40,27 @@ namespace TypedActorFramework
         /// </summary>
         public void SaveModule()
         {
-            ab.Save(aName.Name + ".dll");
+            lock (mutex)
+            {
+                ab.Save(aName.Name + ".dll");
+            }
         }
 
         public Type GetProxyType(Type actorType)
         {
-            Type res;
-            proxyTypes.TryGetValue(actorType, out res);
-            if (res == null)
+            lock (mutex)
             {
-                res = CreateProxyType(mb, actorType);
-                proxyTypes.Add(actorType, res);
+                Type res;
+                proxyTypes.TryGetValue(actorType, out res);
+                if (res == null)
+                {
+                    res = CreateProxyType(mb, actorType);
+                    proxyTypes.Add(actorType, res);
 
-                //ab.Save(aName.Name + ".dll");
+                    //ab.Save(aName.Name + ".dll");
+                }
+                return res;
             }
-            return res;
         }
 
         private static Type CreateProxyType(ModuleBuilder mb, Type actorType)
