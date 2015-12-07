@@ -93,6 +93,30 @@ namespace ActorHelpers
 
         public static Task ContinueWithActor<TResult>(
             this Task<TResult> task,
+            Action<Task<TResult>> continuationFunction)
+        {
+            return runtime.StartNew(() =>
+            {
+                runtime.WaitForActor(task);
+                continuationFunction(task);
+                return (object) null;
+            });
+        }
+
+        public static Task ContinueWithActor(
+            this Task task,
+            Action<Task> continuationFunction)
+        {
+            return runtime.StartNew(() =>
+            {
+                runtime.WaitForActor(task);
+                continuationFunction(task);
+                return (object) null;
+            });
+        }
+
+        public static Task ContinueWithActor<TResult>(
+            this Task<TResult> task,
             Action<Task<TResult>, object> continuationAction,
             object state,
             CancellationToken cancellationToken)
