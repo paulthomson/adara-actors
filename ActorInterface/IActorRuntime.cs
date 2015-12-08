@@ -25,6 +25,8 @@ namespace ActorInterface
         Task StartMain(Action action);
         Task<T> StartMain<T>(Func<T> func);
 
+        void TaskQueued(Task task, string name = null);
+
         void AssignNameToCurrent(string name);
     }
 }

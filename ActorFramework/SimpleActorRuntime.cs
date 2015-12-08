@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using ActorInterface;
+using JetBrains.Annotations;
 
 namespace ActorFramework
 {
@@ -20,14 +22,9 @@ namespace ActorFramework
 
         #region Implementation of IActorRuntime
 
-        public void CancelSelf()
-        {
-            throw new NotImplementedException();
-        }
-
         public void RegisterMainTask(Task mainTask)
         {
-            CreateActor(mainTask, "MainTask");
+            CreateActor(mainTask, null, "MainTask");
         }
 
         public Task StartMain(Action action)
@@ -46,6 +43,14 @@ namespace ActorFramework
             return task;
         }
 
+        public void TaskQueued(Task task, string name = null)
+        {
+            if (!taskIdToActorId.ContainsKey(task.Id))
+            {
+                CreateActor(task, null);
+            }
+        }
+
         public IMailbox<object> Create<TResult>(Func<TResult> entryPoint, string name = null)
         {
             var res = CreateActor(entryPoint, name);
@@ -57,7 +62,7 @@ namespace ActorFramework
         {
             if (Task.CurrentId == null)
             {
-                throw new InvalidOperationException(
+                InternalError(
                     "Cannot call actor operation from non-Task context");
             }
 
@@ -101,6 +106,13 @@ namespace ActorFramework
             GetCurrentActorInfo().name = name;
         }
 
+        public void CancelSelf()
+        {
+            var actorInfo = GetCurrentActorInfo();
+            actorInfo.cts.Cancel();
+            actorInfo.cts.Token.ThrowIfCancellationRequested();
+        }
+
         #endregion
 
         private ActorInfo CreateActor<T>(Func<T> func, string name)
@@ -110,24 +122,28 @@ namespace ActorFramework
 
             lock (mutex)
             {
+                CancellationTokenSource cts = new CancellationTokenSource();
                 Task<T> actorTask = new Task<T>(
-                    func);
+                    func, cts.Token);
 
-                var actorInfo = CreateActor(actorTask, name);
+                var actorInfo = CreateActor(actorTask, cts, name);
 
                 actorTask.Start();
                 return actorInfo;
             }
         }
 
-        private ActorInfo CreateActor(Task actorTask, string name = null)
+        private ActorInfo CreateActor(Task actorTask, CancellationTokenSource cts, string name = null)
         {
+            int taskId = actorTask?.Id ?? Task.CurrentId.Value;
+
             ActorId actorId = new ActorId(nextActorId++);
-            taskIdToActorId.Add(actorTask.Id, actorId);
+            taskIdToActorId.Add(taskId, actorId);
             ActorInfo actorInfo = new ActorInfo(
                 actorId,
                 name,
                 actorTask,
+                cts,
                 this);
             actors.Add(actorId, actorInfo);
             return actorInfo;
@@ -137,10 +153,11 @@ namespace ActorFramework
         {
             if (Task.CurrentId == null)
             {
-                throw new InvalidOperationException(
+                InternalError(
                     "Cannot call actor operation from non-Task context");
             }
-            return GetActorInfo(Task.CurrentId.Value);
+            var res = GetActorInfo(Task.CurrentId.Value);
+            return res;
         }
 
         public ActorInfo GetActorInfo(int taskId)
@@ -152,11 +169,17 @@ namespace ActorFramework
 
                 if (actorId == null)
                 {
-                    throw new InvalidOperationException();
+                    InternalError();
                 }
 
                 return actors[actorId];
             }
+        }
+
+        [ContractAnnotation(" => halt")]
+        public void InternalError(string message = null)
+        {
+            Trace.Assert(false, message);
         }
 
     }

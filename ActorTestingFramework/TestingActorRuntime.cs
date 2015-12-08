@@ -36,7 +36,7 @@ namespace ActorTestingFramework
         {
             CreateActor(
                 mainTask,
-                new CancellationTokenSource(),
+                null,
                 "MainTask");
         }
 
@@ -54,6 +54,14 @@ namespace ActorTestingFramework
             RegisterMainTask(task);
             task.Start();
             return task;
+        }
+
+        public void TaskQueued(Task task, string name = null)
+        {
+            if (!taskIdToActorId.ContainsKey(task.Id))
+            {
+                CreateActor(task, null);
+            }
         }
 
         public IMailbox<object> Create<TResult>(Func<TResult> entryPoint, string name = null)

@@ -1,4 +1,5 @@
 ﻿
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ActorFramework
@@ -12,11 +13,14 @@ namespace ActorFramework
 
         public string name;
 
-        public ActorInfo(ActorId id, string name, Task task, SimpleActorRuntime runtime)
+        public CancellationTokenSource cts;
+
+        public ActorInfo(ActorId id, string name, Task task, CancellationTokenSource cts, SimpleActorRuntime runtime)
         {
             this.id = id;
             this.name = name;
             this.task = task;
+            this.cts = cts;
             Mailbox = new Mailbox<object>(this, runtime);
         }
 

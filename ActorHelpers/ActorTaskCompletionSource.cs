@@ -23,7 +23,15 @@ namespace ActorHelpers
                     (TaskCompletionSourceHelper.Msg)
                         runtime.CurrentMailbox().Receive();
 
-                runtime.CancelSelf();
+                if (res.state == TaskStatus.Canceled)
+                {
+                    runtime.CancelSelf();
+                }
+
+                if (res.state == TaskStatus.Faulted)
+                {
+                    throw res.exception;
+                }
 
                 return (T) res.result;
             });
@@ -42,6 +50,16 @@ namespace ActorHelpers
             {
                 throw ex;
             }
+        }
+
+        public bool TrySetResult(T res)
+        {
+            return source.TrySetResult(res);
+        }
+
+        public void SetException(Exception ex)
+        {
+            source.SetException(ex);
         }
 
         public void SetCanceled()

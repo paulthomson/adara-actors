@@ -11,6 +11,8 @@ namespace ActorHelpers
         public static IActorRuntime runtime;
         public static ITypedActorRuntime typedRuntime;
 
+        public static TaskScheduler taskScheduler;
+
         public static void Sleep(int milliseconds)
         {
             runtime.Sleep(milliseconds);
