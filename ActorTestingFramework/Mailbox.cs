@@ -2,11 +2,14 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ActorInterface;
+using NLog;
 
 namespace ActorTestingFramework
 {
     public class Mailbox<T> : IMailbox<T>
     {
+        private static Logger LOGGER = LogManager.GetCurrentClassLogger();
+
         public readonly ActorInfo ownerActorInfo;
         private readonly TestingActorRuntime runtime;
         private readonly IList<T> mailbox;
@@ -23,6 +26,7 @@ namespace ActorTestingFramework
         public void Send(T msg)
         {
             runtime.Schedule(OpType.SEND);
+            LogSend(msg);
             mailbox.Add(msg);
 
             if (waiter != null)
@@ -31,6 +35,12 @@ namespace ActorTestingFramework
                 waiter.enabled = true;
                 waiter = null;
             }
+        }
+
+        private void LogSend(T msg)
+        {
+            var currentActor = runtime.GetCurrentActorInfo();
+            LOGGER.Trace($"{currentActor} -- {msg} --> {ownerActorInfo}");
         }
 
         public T Receive()

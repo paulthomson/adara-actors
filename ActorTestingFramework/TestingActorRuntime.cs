@@ -1,16 +1,19 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using ActorInterface;
+using JetBrains.Annotations;
+using NLog;
 
 namespace ActorTestingFramework
 {
     public class TestingActorRuntime : IActorRuntime, ITestingRuntime
     {
+        private static Logger LOGGER = LogManager.GetCurrentClassLogger();
+
         private readonly Dictionary<int, ActorId> taskIdToActorId =
             new Dictionary<int, ActorId>();
 
@@ -56,11 +59,25 @@ namespace ActorTestingFramework
             return task;
         }
 
-        public void TaskQueued(Task task, string name = null)
+        public void TaskQueued(Task task, ref Action action, string name = null)
         {
             if (!taskIdToActorId.ContainsKey(task.Id))
             {
-                CreateActor(task, null);
+                LOGGER.Trace($"TaskQueued {task.Id}");
+                var actorInfo = CreateActor(task, null);
+                var oldAction = action;
+                action = delegate
+                {
+                    ActorBody(() =>
+                    {
+                        oldAction();
+                        return (object) null;
+                    },
+                        this,
+                        false,
+                        actorInfo);
+                };
+
             }
         }
 
@@ -75,7 +92,7 @@ namespace ActorTestingFramework
         {
             if (Task.CurrentId == null)
             {
-                throw new InvalidOperationException(
+                InternalError(
                     "Cannot call actor operation from non-Task context");
             }
             return new Mailbox<T>(GetCurrentActorInfo(), this);
@@ -88,7 +105,7 @@ namespace ActorTestingFramework
 
         public Task<T> StartNew<T>(Func<T> func, string name = null)
         {
-            var res = CreateActor<T>(func, name);
+            var res = CreateActor(func, name);
 
             return (Task<T>) res.task;
         }
@@ -96,6 +113,12 @@ namespace ActorTestingFramework
         public void Sleep(int millisecondsTimeout)
         {
             // TODO: Perhaps yield?
+        }
+
+        public void Yield()
+        {
+            var info = GetCurrentActorInfo();
+            Schedule(OpType.Yield);
         }
 
         public IMailbox<object> MailboxFromTask(Task task)
@@ -107,14 +130,23 @@ namespace ActorTestingFramework
         {
             var actorInfo = GetCurrentActorInfo();
             var otherInfo = ((Mailbox<object>) mailbox).ownerActorInfo;
-            WaitHelper(actorInfo, otherInfo);
+            WaitHelper(actorInfo, otherInfo, true);
         }
 
-        public void WaitForActor(Task task)
+        public void WaitForActor(Task task, bool throwExceptions = true)
         {
             var actorInfo = GetCurrentActorInfo();
             var otherInfo = GetActorInfo(task.Id);
-            WaitHelper(actorInfo, otherInfo);
+            WaitHelper(actorInfo, otherInfo, throwExceptions);
+            // Need to also wait for the actual task to end
+            // so that threads can access Result, Status, etc.
+            try
+            {
+                task.Wait();
+            }
+            catch (AggregateException)
+            {
+            }
         }
 
         public void CancelSelf()
@@ -143,7 +175,9 @@ namespace ActorTestingFramework
 
         #endregion
 
-        private void WaitHelper(ActorInfo actorInfo, ActorInfo otherInfo)
+        private void WaitHelper(ActorInfo actorInfo,
+            ActorInfo otherInfo,
+            bool throwExceptions)
         {
             if (!otherInfo.terminated)
             {
@@ -153,7 +187,7 @@ namespace ActorTestingFramework
 
             Schedule(OpType.JOIN);
 
-            if (otherInfo.exceptions.Count > 0)
+            if (throwExceptions && otherInfo.exceptions.Count > 0)
             {
                 throw new AggregateException(otherInfo.exceptions);
             }
@@ -183,10 +217,13 @@ namespace ActorTestingFramework
         public static T ActorBody<T>(
             Func<T> func,
             TestingActorRuntime runtime,
-            bool mainThread)
+            bool mainThread,
+            ActorInfo info = null)
         {
-            ActorInfo info = runtime.GetCurrentActorInfo();
-
+            if (info == null)
+            {
+                info = runtime.GetCurrentActorInfo();
+            }
             lock (info.mutex)
             {
                 Safety.Assert(info.active);
@@ -231,7 +268,7 @@ namespace ActorTestingFramework
             {
                 try
                 {
-                    runtime.Schedule(OpType.END);
+                    runtime.Schedule(OpType.END, info);
 
                     lock (info.mutex)
                     {
@@ -244,7 +281,7 @@ namespace ActorTestingFramework
                         info.terminateWaiters.Clear();
                     }
 
-                    runtime.Schedule(OpType.END);
+                    runtime.Schedule(OpType.END, info);
                 }
                 catch (ActorTerminatedException)
                 {
@@ -284,12 +321,10 @@ namespace ActorTestingFramework
             // Ensure that calling Task has an id.
             GetCurrentActorInfo();
 
-            CancellationTokenSource cts = new CancellationTokenSource();
-
-            Task<T> actorTask = new Task<T>(() => ActorBody(func, this, false), cts.Token);
-
             Schedule(OpType.CREATE);
 
+            CancellationTokenSource cts = new CancellationTokenSource();
+            Task<T> actorTask = new Task<T>(() => ActorBody(func, this, false), cts.Token);
             ActorInfo actorInfo = CreateActor(actorTask, cts, name);
 
             actorTask.Start();
@@ -306,9 +341,12 @@ namespace ActorTestingFramework
         }
 
 
-        public void Schedule(OpType opType)
+        public void Schedule(OpType opType, ActorInfo currentActor = null)
         {
-            ActorInfo currentActor = GetCurrentActorInfo();
+            if (currentActor == null)
+            {
+                currentActor = GetCurrentActorInfo();
+            }
 
             if (CheckTerminated(opType))
             {
@@ -317,7 +355,9 @@ namespace ActorTestingFramework
 
             currentActor.currentOp = opType;
 
-            if (actorList.Count(info => info.enabled) == 0)
+            ActorInfo nextActor = scheduler.GetNext(actorList, currentActor);
+
+            if (nextActor == null)
             {
                 foreach (
                     var waiter in
@@ -326,9 +366,8 @@ namespace ActorTestingFramework
                     waiter.waitingForDeadlock = false;
                     waiter.enabled = true;
                 }
+                nextActor = scheduler.GetNext(actorList, currentActor);
             }
-
-            ActorInfo nextActor = scheduler.GetNext(actorList, currentActor);
 
             if (nextActor == null)
             {
@@ -406,7 +445,7 @@ namespace ActorTestingFramework
         {
             if (Task.CurrentId == null)
             {
-                throw new InvalidOperationException(
+                InternalError(
                     "Cannot call actor operation from non-Task context");
             }
 
@@ -422,12 +461,17 @@ namespace ActorTestingFramework
 
             if (actorId == null)
             {
-                throw new InvalidOperationException();
+                InternalError();
             }
 
             return actors[actorId];
         }
 
-        
+        [ContractAnnotation(" => halt")]
+        public void InternalError(string message = null)
+        {
+            Trace.Assert(false, message);
+        }
+
     }
 }

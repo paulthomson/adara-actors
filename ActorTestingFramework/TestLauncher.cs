@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
+using ActorHelpers;
 using ActorInterface;
 
 namespace ActorTestingFramework
@@ -8,7 +10,18 @@ namespace ActorTestingFramework
     {
         private IScheduler scheduler;
         private TestingActorRuntime runtime;
+        private readonly TaskScheduler taskScheduler;
 
+        public TestLauncher(TaskScheduler taskScheduler)
+        {
+            this.taskScheduler = taskScheduler;
+        }
+
+        public TestLauncher() 
+            : this(TaskScheduler.Current)
+        {
+
+        }
 
         #region Implementation of ITestLauncher
 
@@ -17,7 +30,10 @@ namespace ActorTestingFramework
             runtime = new TestingActorRuntime(scheduler);
             scheduler.NextSchedule();
 
-            var task = runtime.StartMain(() =>
+            // TODO: Remove this somehow.
+            TaskHelper.runtime = runtime;
+
+            var task = new Task(() =>
             {
                 TestingActorRuntime.ActorBody<object>(
                     () =>
@@ -27,7 +43,13 @@ namespace ActorTestingFramework
                     },
                     runtime,
                     true);
-            });
+            },
+                CancellationToken.None,
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
+            runtime.RegisterMainTask(task);
+
+            task.Start(taskScheduler);
 
             task.Wait();
             runtime.WaitForAllActorsToTerminate();

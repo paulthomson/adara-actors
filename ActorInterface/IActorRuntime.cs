@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using JetBrains.Annotations;
 
 namespace ActorInterface
 {
@@ -13,10 +14,12 @@ namespace ActorInterface
 
         void Sleep(int millisecondsTimeout);
 
+        void Yield();
+
         IMailbox<object> MailboxFromTask(Task task);
 
         void WaitForActor(IMailbox<object> mailbox);
-        void WaitForActor(Task task);
+        void WaitForActor(Task task, bool throwExceptions = true);
 
         void CancelSelf();
 
@@ -25,8 +28,11 @@ namespace ActorInterface
         Task StartMain(Action action);
         Task<T> StartMain<T>(Func<T> func);
 
-        void TaskQueued(Task task, string name = null);
+        void TaskQueued(Task task, ref Action action, string name = null);
 
         void AssignNameToCurrent(string name);
+
+        [ContractAnnotation(" => halt")]
+        void InternalError(string message = null);
     }
 }

@@ -5,6 +5,7 @@
         INVALID,
         START, END,
         CREATE, JOIN, SEND, RECEIVE,
-        WaitForDeadlock
+        WaitForDeadlock,
+        Yield
     }
 }

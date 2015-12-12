@@ -76,6 +76,10 @@
     <Compile Include="TestLauncher.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ActorHelpers\ActorHelpers.csproj">
+      <Project>{085834C6-62F8-43CB-BE34-D16F10EF85D1}</Project>
+      <Name>ActorHelpers</Name>
+    </ProjectReference>
     <ProjectReference Include="..\ActorInterface\ActorInterface.csproj">
       <Project>{75810608-D2F1-4431-B827-DEF01C020DA5}</Project>
       <Name>ActorInterface</Name>

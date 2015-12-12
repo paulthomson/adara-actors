@@ -5,11 +5,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using ActorInterface;
 using JetBrains.Annotations;
+using NLog;
 
 namespace ActorFramework
 {
     public class SimpleActorRuntime : IActorRuntime
     {
+        private static Logger LOGGER = LogManager.GetCurrentClassLogger();
+
         private readonly Dictionary<int, ActorId> taskIdToActorId =
             new Dictionary<int, ActorId>();
 
@@ -43,10 +46,11 @@ namespace ActorFramework
             return task;
         }
 
-        public void TaskQueued(Task task, string name = null)
+        public void TaskQueued(Task task, ref Action action, string name = null)
         {
             if (!taskIdToActorId.ContainsKey(task.Id))
             {
+                LOGGER.Trace($"TaskQueued {task.Id}");
                 CreateActor(task, null);
             }
         }
@@ -86,6 +90,11 @@ namespace ActorFramework
             Thread.Sleep(millisecondsTimeout);
         }
 
+        public void Yield()
+        {
+            Thread.Yield();
+        }
+
         public IMailbox<object> MailboxFromTask(Task task)
         {
             return GetActorInfo(task.Id).Mailbox;
@@ -96,9 +105,22 @@ namespace ActorFramework
             ((Mailbox<object>) mailbox).ownerActorInfo.task.Wait();
         }
 
-        public void WaitForActor(Task task)
+        public void WaitForActor(Task task, bool throwExceptions = true)
         {
-            task.Wait();
+            if (throwExceptions)
+            {
+                task.Wait();
+            }
+            else
+            {
+                try
+                {
+                    task.Wait();
+                }
+                catch (AggregateException)
+                {
+                }
+            }
         }
 
         public void AssignNameToCurrent(string name)
