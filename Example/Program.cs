@@ -1,7 +1,5 @@
 ﻿
 using System;
-using System.Runtime.ExceptionServices;
-using System.Threading;
 using System.Threading.Tasks;
 using ActorFramework;
 using ActorInterface;
@@ -127,15 +125,10 @@ namespace Example
 
             // Random testing (can use actors or typed actors).
 
-            // The implementation of TestActorRuntime can also be
-            // replaced with another implementation 
-            // (still need to make an interface for this though). 
-            // Or, a different implementation of IActorRuntime
-            // can be provided that does testing (using a different
-            // test harness).
+            // Do 100 executions of the test case below.
 
             ITestLauncher testLauncher = new TestLauncher();
-            testLauncher.SetScheduler(new RandomScheduler());
+            testLauncher.SetScheduler(new RandomScheduler(0));
 
             for (int i = 1; i <= 100; ++i)
             {
