@@ -46,7 +46,7 @@ namespace ActorFramework
             return task;
         }
 
-        public void TaskQueued(Task task, ref Action action, string name = null)
+        public void TaskQueued(Task task, Action action)
         {
             if (!taskIdToActorId.ContainsKey(task.Id))
             {

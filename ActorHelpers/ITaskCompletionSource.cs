@@ -6,9 +6,9 @@ namespace ActorHelpers
 {
     public interface ITaskCompletionSource : ITypedActor
     {
-        void SetResult(object res, IMailbox<object> rt);
+        object SetResult(object res);
         bool TrySetResult(object res);
-        void SetCanceled(IMailbox<object> rt);
+        object SetCanceled();
         object SetException(Exception exception);
     }
 }

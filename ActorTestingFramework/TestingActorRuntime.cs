@@ -59,10 +59,13 @@ namespace ActorTestingFramework
             return task;
         }
 
-        public void TaskQueued(Task task, ref Action action, string name = null)
+        public void TaskQueued(Task task, Action action)
         {
+            CheckTerminated(OpType.CREATE);
+
             if (!taskIdToActorId.ContainsKey(task.Id))
             {
+                // Task was created externally.
                 LOGGER.Trace($"TaskQueued {task.Id}");
                 var actorInfo = CreateActor(task, null);
                 var oldAction = action;
@@ -78,6 +81,19 @@ namespace ActorTestingFramework
                         actorInfo);
                 };
 
+                LaunchThread(action, task);
+
+                lock (actorInfo.mutex)
+                {
+                    while (actorInfo.active)
+                    {
+                        Monitor.Wait(actorInfo.mutex);
+                    }
+                }
+            }
+            else
+            {
+                LaunchThread(action, task);
             }
         }
 
@@ -130,14 +146,15 @@ namespace ActorTestingFramework
         {
             var actorInfo = GetCurrentActorInfo();
             var otherInfo = ((Mailbox<object>) mailbox).ownerActorInfo;
-            WaitHelper(actorInfo, otherInfo, true);
+            WaitHelper(actorInfo, otherInfo);
+            ThrowWaitExceptionIfNeeded(otherInfo);
         }
 
         public void WaitForActor(Task task, bool throwExceptions = true)
         {
             var actorInfo = GetCurrentActorInfo();
             var otherInfo = GetActorInfo(task.Id);
-            WaitHelper(actorInfo, otherInfo, throwExceptions);
+            WaitHelper(actorInfo, otherInfo);
             // Need to also wait for the actual task to end
             // so that threads can access Result, Status, etc.
             try
@@ -146,6 +163,11 @@ namespace ActorTestingFramework
             }
             catch (AggregateException)
             {
+            }
+
+            if (throwExceptions)
+            {
+                ThrowWaitExceptionIfNeeded(otherInfo);
             }
         }
 
@@ -175,9 +197,7 @@ namespace ActorTestingFramework
 
         #endregion
 
-        private void WaitHelper(ActorInfo actorInfo,
-            ActorInfo otherInfo,
-            bool throwExceptions)
+        private void WaitHelper(ActorInfo actorInfo, ActorInfo otherInfo)
         {
             if (!otherInfo.terminated)
             {
@@ -187,12 +207,15 @@ namespace ActorTestingFramework
 
             Schedule(OpType.JOIN);
 
-            if (throwExceptions && otherInfo.exceptions.Count > 0)
+            Safety.Assert(otherInfo.terminated);
+        }
+
+        private static void ThrowWaitExceptionIfNeeded(ActorInfo otherInfo)
+        {
+            if (otherInfo.exceptions.Count > 0)
             {
                 throw new AggregateException(otherInfo.exceptions);
             }
-
-            Safety.Assert(otherInfo.terminated);
         }
 
         public void WaitForAllActorsToTerminate()
@@ -465,6 +488,20 @@ namespace ActorTestingFramework
             }
 
             return actors[actorId];
+        }
+
+        private void LaunchThread(Action action, Task task)
+        {
+            
+            Thread thread = new Thread(() =>
+            {
+                action();
+
+            })
+            {
+                Name = $"TaskId({task.Id})"
+            };
+            thread.Start();
         }
 
         [ContractAnnotation(" => halt")]

@@ -23,59 +23,65 @@ namespace ActorHelpers
         private object result;
         private TaskStatus state = TaskStatus.Running;
         private readonly IMailbox<object> taskMailbox;
+        private readonly Task task;
+        private readonly IActorRuntime runtime;
 
-        public TaskCompletionSourceHelper(IMailbox<object> taskMailbox)
+        public TaskCompletionSourceHelper(
+            IActorRuntime runtime,
+            IMailbox<object> taskMailbox,
+            Task task)
         {
+            this.runtime = runtime;
             this.taskMailbox = taskMailbox;
+            this.task = task;
         }
 
         #region Implementation of ITaskCompletionSource
 
-        public void SetResult(object res, IMailbox<object> rt)
+        public object SetResult(object res)
         {
-            if (CheckInvalidOperation(rt))
+            if (InFinalState(state))
             {
-                return;
+                throw new InvalidOperationException();
             }
             
             result = res;
             state = TaskStatus.RanToCompletion;
             taskMailbox.Send(new Msg(result, null, state));
-            rt.Send(null);
+            runtime.WaitForActor(task, false);
+            return null;
         }
 
         public bool TrySetResult(object res)
         {
-            if (state == TaskStatus.Canceled ||
-                state == TaskStatus.Faulted ||
-                state == TaskStatus.RanToCompletion)
+            if (InFinalState(state))
             {
                 return false;
             }
             result = res;
             state = TaskStatus.RanToCompletion;
             taskMailbox.Send(new Msg(result, null, state));
+            runtime.WaitForActor(task, false);
             return true;
         }
 
-        public void SetCanceled(IMailbox<object> rt)
+        public object SetCanceled()
         {
-            if (CheckInvalidOperation(rt))
+            if (InFinalState(state))
             {
-                return;
+                throw new InvalidOperationException();
             }
 
             result = null;
             state = TaskStatus.Canceled;
             taskMailbox.Send(new Msg(result, null, state));
-            rt.Send(null);
+            runtime.WaitForActor(task, false);
+            return null;
         }
 
         public object SetException(Exception exception)
         {
-            if (state == TaskStatus.Canceled ||
-                state == TaskStatus.Faulted ||
-                state == TaskStatus.RanToCompletion)
+            if (InFinalState(state))
             {
                 throw new InvalidOperationException();
             }
@@ -83,21 +89,18 @@ namespace ActorHelpers
             result = null;
             state = TaskStatus.Faulted;
             taskMailbox.Send(new Msg(result, exception, state));
+            runtime.WaitForActor(task, false);
             return null;
         }
 
         #endregion
 
-        private bool CheckInvalidOperation(IMailbox<object> rt)
+        private static bool InFinalState(TaskStatus state)
         {
-            if (state == TaskStatus.Canceled ||
-                state == TaskStatus.Faulted ||
-                state == TaskStatus.RanToCompletion)
-            {
-                rt.Send(new InvalidOperationException());
-                return true;
-            }
-            return false;
+            return state == TaskStatus.Canceled ||
+                   state == TaskStatus.Faulted ||
+                   state == TaskStatus.RanToCompletion;
         }
+
     }
 }

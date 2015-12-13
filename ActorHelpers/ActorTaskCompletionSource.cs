@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 using ActorInterface;
 using TypedActorInterface;
@@ -38,18 +37,12 @@ namespace ActorHelpers
 
             source =
                 typedRuntime.Create<ITaskCompletionSource>(
-                    new TaskCompletionSourceHelper(runtime.MailboxFromTask(Task)));
+                    new TaskCompletionSourceHelper(runtime, runtime.MailboxFromTask(Task), Task));
         }
 
         public void SetResult(T res)
         {
-            var mailbox = runtime.CreateMailbox<object>();
-            source.SetResult(res, mailbox);
-            var ex = (Exception) mailbox.Receive();
-            if (ex != null)
-            {
-                throw ex;
-            }
+            source.SetResult(res);
         }
 
         public bool TrySetResult(T res)
@@ -64,13 +57,7 @@ namespace ActorHelpers
 
         public void SetCanceled()
         {
-            var mailbox = runtime.CreateMailbox<object>();
-            source.SetCanceled(mailbox);
-            var ex = (Exception) mailbox.Receive();
-            if (ex != null)
-            {
-                throw ex;
-            }
+            source.SetCanceled();
         }
 
 

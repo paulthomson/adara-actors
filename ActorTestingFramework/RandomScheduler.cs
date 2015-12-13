@@ -6,7 +6,12 @@ namespace ActorTestingFramework
 {
     public class RandomScheduler : IScheduler
     {
-        private readonly Random rand = new Random();
+        private readonly Random rand;
+
+        public RandomScheduler(int seed)
+        {
+            rand = new Random(seed);
+        }
 
         private static bool IsProgressOp(OpType op)
         {

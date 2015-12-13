@@ -26,7 +26,8 @@ namespace ActorHelpers
 
         public static Task Delay(int milliseconds)
         {
-            runtime.Sleep(milliseconds);
+//            runtime.Sleep(milliseconds);
+            runtime.Yield();
             return runtime.StartNew(() => (object)null);
         }
 
