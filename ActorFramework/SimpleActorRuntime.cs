@@ -53,6 +53,13 @@ namespace ActorFramework
                 LOGGER.Trace($"TaskQueued {task.Id}");
                 CreateActor(task, null);
             }
+
+            Thread thread = new Thread(() => { action(); })
+            {
+                Name = $"TaskId({task.Id})"
+            };
+
+            thread.Start();
         }
 
         public IMailbox<object> Create<TResult>(Func<TResult> entryPoint, string name = null)
