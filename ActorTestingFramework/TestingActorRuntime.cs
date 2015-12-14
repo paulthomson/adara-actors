@@ -67,6 +67,9 @@ namespace ActorTestingFramework
             {
                 // Task was created externally.
                 LOGGER.Trace($"TaskQueued {task.Id}");
+
+                Schedule(OpType.CREATE);
+
                 var actorInfo = CreateActor(task, null);
                 var oldAction = action;
                 action = delegate
