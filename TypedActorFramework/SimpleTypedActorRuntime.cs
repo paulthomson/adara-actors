@@ -67,6 +67,16 @@ namespace TypedActorFramework
             m.Call(actorInstance);
         }
 
+        public void ChangeState(Enum state)
+        {
+            
+        }
+
+        public void PushState<T>(Enum state)
+        {
+
+        }
+
         #endregion
 
         private T GetOrCreateProxy<T>(IMailbox<object> mailbox)

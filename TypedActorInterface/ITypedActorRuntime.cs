@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using ActorInterface;
 
 namespace TypedActorInterface
@@ -16,5 +17,13 @@ namespace TypedActorInterface
 
         void ReceiveCall<T>(IMailbox<object> mailbox, T actorInstance)
             where T : ITypedActor;
+
+        void ChangeState(int state);
+        void PushState<T>(T state) where T : ITypedActor;
+        bool IsInState(int state);
+
+        void StateError();
+        void Defer();
+        void SetInitialState<T>(T initState) where T : ITypedActor;
     }
 }

@@ -17,6 +17,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActorTestingFramework", "Ac
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ActorHelpers", "ActorHelpers\ActorHelpers.csproj", "{085834C6-62F8-43CB-BE34-D16F10EF85D1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FailureDetectorExample", "FailureDetectorExample\FailureDetectorExample.csproj", "{ED3F1CA4-0DC5-4B01-99E6-96F3D4FFF208}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FailureDetector2", "FailureDetector2\FailureDetector2.csproj", "{B8DADA72-7C72-4CA1-B64F-0923E9744222}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +55,14 @@ Global
 		{085834C6-62F8-43CB-BE34-D16F10EF85D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{085834C6-62F8-43CB-BE34-D16F10EF85D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{085834C6-62F8-43CB-BE34-D16F10EF85D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED3F1CA4-0DC5-4B01-99E6-96F3D4FFF208}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED3F1CA4-0DC5-4B01-99E6-96F3D4FFF208}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED3F1CA4-0DC5-4B01-99E6-96F3D4FFF208}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED3F1CA4-0DC5-4B01-99E6-96F3D4FFF208}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8DADA72-7C72-4CA1-B64F-0923E9744222}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8DADA72-7C72-4CA1-B64F-0923E9744222}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8DADA72-7C72-4CA1-B64F-0923E9744222}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8DADA72-7C72-4CA1-B64F-0923E9744222}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
