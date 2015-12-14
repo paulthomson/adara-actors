@@ -48,10 +48,13 @@ namespace ActorFramework
 
         public void TaskQueued(Task task, Action action)
         {
-            if (!taskIdToActorId.ContainsKey(task.Id))
+            lock (mutex)
             {
-                LOGGER.Trace($"TaskQueued {task.Id}");
-                CreateActor(task, null);
+                if (!taskIdToActorId.ContainsKey(task.Id))
+                {
+                    LOGGER.Trace($"TaskQueued {task.Id}");
+                    CreateActor(task, null);
+                }
             }
 
             Thread thread = new Thread(() => { action(); })
