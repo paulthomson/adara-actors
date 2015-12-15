@@ -18,13 +18,13 @@ namespace ActorTestingFramework
             switch (op)
             {
                 case OpType.INVALID:
+                case OpType.WaitForDeadlock:
+                case OpType.Yield:
+                    return false;
                 case OpType.START:
                 case OpType.END:
                 case OpType.CREATE:
                 case OpType.JOIN:
-                case OpType.WaitForDeadlock:
-                case OpType.Yield:
-                    return false;
                 case OpType.SEND:
                 case OpType.RECEIVE:
                     return true;
