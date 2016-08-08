@@ -209,7 +209,7 @@ namespace ActorHelpers
                     case TaskStatus.Faulted:
                         throw new AggregateException();
                     case TaskStatus.RanToCompletion:
-                        var res = task.ResultActor();
+                        var res = task.Result/*OK*/;
                         if (res == null)
                         {
                             runtime.CancelSelf();
@@ -226,7 +226,7 @@ namespace ActorHelpers
                                 case TaskStatus.Faulted:
                                     throw new AggregateException();
                                 case TaskStatus.RanToCompletion:
-                                    var res2 = res.ResultActor();
+                                    var res2 = res.Result/*OK*/;
                                     if (res2 == null)
                                     {
                                         runtime.CancelSelf();
