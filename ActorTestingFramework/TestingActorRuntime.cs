@@ -156,7 +156,16 @@ namespace ActorTestingFramework
         public void WaitForActor(Task task, bool throwExceptions = true)
         {
             var actorInfo = GetCurrentActorInfo();
-            var otherInfo = GetActorInfo(task.Id);
+            var otherInfo = GetActorInfoUnsafe(task.Id);
+            if (otherInfo == null)
+            {
+                if (!task.Wait(1000))
+                {
+                    InternalError("Task was not created by us and was not completed.");
+                }
+                return;
+            }
+
             WaitHelper(actorInfo, otherInfo);
             // Need to also wait for the actual task to end
             // so that threads can access Result, Status, etc.
@@ -177,6 +186,10 @@ namespace ActorTestingFramework
         public void CancelSelf()
         {
             var actorInfo = GetCurrentActorInfo();
+            if (actorInfo.cts == null)
+            {
+                InternalError("Missing cancellation token source!");
+            }
             actorInfo.cts.Cancel();
             actorInfo.cts.Token.ThrowIfCancellationRequested();
         }
@@ -478,19 +491,28 @@ namespace ActorTestingFramework
             return GetActorInfo(Task.CurrentId.Value);
         }
 
-        public ActorInfo GetActorInfo(int taskId)
+        public ActorInfo GetActorInfoUnsafe(int taskId)
         {
-//            CheckTerminated(OpType.INVALID);
-            
             ActorId actorId;
             taskIdToActorId.TryGetValue(taskId, out actorId);
 
             if (actorId == null)
             {
-                InternalError();
+                return null;
             }
 
             return actors[actorId];
+        }
+
+        public ActorInfo GetActorInfo(int taskId)
+        {
+//            CheckTerminated(OpType.INVALID);
+            var res = GetActorInfoUnsafe(taskId);
+            if (res == null)
+            {
+                InternalError();
+            }
+            return res;
         }
 
         private void LaunchThread(Action action, Task task)
