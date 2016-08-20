@@ -68,12 +68,14 @@
   <ItemGroup>
     <Compile Include="ActorId.cs" />
     <Compile Include="ActorInfo.cs" />
+    <Compile Include="ActorList.cs" />
     <Compile Include="ActorTerminatedException.cs" />
     <Compile Include="IScheduler.cs" />
     <Compile Include="ITestingRuntime.cs" />
     <Compile Include="ITestLauncher.cs" />
     <Compile Include="Mailbox.cs" />
     <Compile Include="OpType.cs" />
+    <Compile Include="PCTScheduler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RandomScheduler.cs" />
     <Compile Include="Safety.cs" />

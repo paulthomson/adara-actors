@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using NLog;
 
 namespace ActorTestingFramework
 {
     public class RandomScheduler : IScheduler
     {
+        private static readonly Logger LOGGER = LogManager.GetCurrentClassLogger();
+
         private readonly Random rand;
 
         public RandomScheduler(int seed)
@@ -42,7 +46,21 @@ namespace ActorTestingFramework
                 currentActor.enabled = false;
             }
 
-            if (IsProgressOp(currentActor.currentOp))
+            var enabled = actorList.Where(info => info.enabled).ToList();
+
+            if (enabled.Count == 0)
+            {
+                return null;
+            }
+
+            var enabledNotSend =
+                enabled.Where(info => info.currentOp != OpType.SEND).ToList();
+
+            var choices = enabledNotSend.Count > 0 ? enabledNotSend : enabled;
+
+            int nextIndex = rand.Next(choices.Count - 1);
+
+            if (IsProgressOp(choices[nextIndex].currentOp))
             {
                 foreach (var actorInfo in
                     actorList.Where(info => info.currentOp == OpType.Yield && !info.enabled))
@@ -51,16 +69,9 @@ namespace ActorTestingFramework
                 }
             }
 
-            var enabled = actorList.Where(info => info.enabled).ToList();
+            LOGGER.Trace("Actors: {0}", new ActorList(enabled, choices[nextIndex].id.id));
 
-            if (enabled.Count == 0)
-            {
-                return null;
-            }
-
-            int nextIndex = rand.Next(enabled.Count - 1);
-
-            return enabled[nextIndex];
+            return choices[nextIndex];
         }
 
         public void NextSchedule()
