@@ -131,7 +131,7 @@ namespace ActorTestingFramework
 
         public void Sleep(int millisecondsTimeout)
         {
-            // TODO: Perhaps yield?
+            Yield();
         }
 
         public void Yield()
