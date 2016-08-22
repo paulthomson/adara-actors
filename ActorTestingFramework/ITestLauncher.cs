@@ -5,7 +5,6 @@ namespace ActorTestingFramework
 {
     public interface ITestLauncher
     {
-        void Execute(Action<IActorRuntime, ITestingRuntime> action);
-        void SetScheduler(IScheduler scheduler);
+        void Execute(Action<IActorRuntime, ITestingRuntime> action, IScheduler scheduler);
     }
 }

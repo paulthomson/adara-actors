@@ -7,10 +7,10 @@ namespace ActorTestingFramework
     public class PCTScheduler : IScheduler
     {
         private readonly List<ActorInfo> actorPriorityList;
-        private readonly Random rand;
         private readonly int numChangePoints;
         private readonly List<int> changePoints; 
 
+        private Random rand;
         private int maxSteps;
         private int numSteps;
 
@@ -26,6 +26,11 @@ namespace ActorTestingFramework
         {
             int pos = rand.Next(actorPriorityList.Count + 1);
             actorPriorityList.Insert(pos, actorInfo);
+        }
+
+        public void SetSeed(int seed)
+        {
+            rand = new Random(seed);
         }
 
         #region Implementation of IScheduler

@@ -10,9 +10,14 @@ namespace ActorTestingFramework
     {
         private static readonly Logger LOGGER = LogManager.GetCurrentClassLogger();
 
-        private readonly Random rand;
+        private Random rand;
 
         public RandomScheduler(int seed)
+        {
+            rand = new Random(seed);
+        }
+
+        public void SetSeed(int seed)
         {
             rand = new Random(seed);
         }
@@ -58,7 +63,7 @@ namespace ActorTestingFramework
 
             var choices = enabledNotSend.Count > 0 ? enabledNotSend : enabled;
 
-            int nextIndex = rand.Next(choices.Count - 1);
+            int nextIndex = rand.Next(choices.Count);
 
             if (IsProgressOp(choices[nextIndex].currentOp))
             {

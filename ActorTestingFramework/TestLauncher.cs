@@ -8,7 +8,6 @@ namespace ActorTestingFramework
 {
     public class TestLauncher : ITestLauncher
     {
-        private IScheduler scheduler;
         private TestingActorRuntime runtime;
         private readonly TaskScheduler taskScheduler;
 
@@ -25,7 +24,7 @@ namespace ActorTestingFramework
 
         #region Implementation of ITestLauncher
 
-        public void Execute(Action<IActorRuntime, ITestingRuntime> action)
+        public void Execute(Action<IActorRuntime, ITestingRuntime> action, IScheduler scheduler)
         {
             runtime = new TestingActorRuntime(scheduler);
             scheduler.NextSchedule();
@@ -54,11 +53,6 @@ namespace ActorTestingFramework
             task.Wait();
             runtime.WaitForAllActorsToTerminate();
 
-        }
-
-        public void SetScheduler(IScheduler scheduler)
-        {
-            this.scheduler = scheduler;
         }
 
         #endregion
