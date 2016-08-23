@@ -6,12 +6,12 @@ namespace ActorTestingFramework
     public class ActorList
     {
         private readonly List<ActorInfo> actorList;
-        private readonly int selectedId;
+        private readonly ActorInfo selected;
 
-        public ActorList(List<ActorInfo> actorList, int selectedId)
+        public ActorList(List<ActorInfo> actorList, ActorInfo selected)
         {
             this.actorList = actorList;
-            this.selectedId = selectedId;
+            this.selected = selected;
         }
 
         #region Overrides of Object
@@ -19,11 +19,21 @@ namespace ActorTestingFramework
         public override string ToString()
         {
             StringBuilder sb = new StringBuilder();
+            sb.Append("\n\n");
             foreach (var actorInfo in actorList)
             {
-                sb.Append(actorInfo.id.id + "(" + actorInfo.currentOp +
-                          (actorInfo.id.id == selectedId ? "*) " : ") "));
+                string prefix = "";
+                if (actorInfo.enabled)
+                {
+                    prefix = "   ";
+                }
+                if (actorInfo == selected)
+                {
+                    prefix = ">  ";
+                }
+                sb.Append(prefix + actorInfo + "(" + actorInfo.currentOp + ")\n");
             }
+            sb.Append("\n");
             return sb.ToString();
 
         }

@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using NLog;
 
 namespace ActorTestingFramework
 {
     public class PCTScheduler : IScheduler
     {
+        private static readonly Logger LOGGER = LogManager.GetCurrentClassLogger();
+
         private readonly List<ActorInfo> actorPriorityList;
         private readonly int numChangePoints;
         private readonly List<int> changePoints; 
@@ -45,7 +48,7 @@ namespace ActorTestingFramework
                 InsertActorRandomly(actorList[i]);
             }
 
-            // Increment num steps and reduce priority of currentActor if this a change point.
+            // Increment num steps and reduce priority of currentActor if this is a change point.
             if (currentActor.currentOp == OpType.SEND)
             {
                 ++numSteps;
@@ -62,6 +65,15 @@ namespace ActorTestingFramework
                 currentActor.enabled = false;
             }
 
+            if (RandomScheduler.IsProgressOp(currentActor.currentOp))
+            {
+                foreach (var actorInfo in
+                    actorList.Where(info => info.currentOp == OpType.Yield && !info.enabled))
+                {
+                    actorInfo.enabled = true;
+                }
+            }
+
             var enabled = actorPriorityList.Where(info => info.enabled).ToList();
 
             if (enabled.Count == 0)
@@ -73,6 +85,8 @@ namespace ActorTestingFramework
                 enabled.Where(info => info.currentOp != OpType.SEND).ToList();
 
             var choices = enabledNotSend.Count > 0 ? enabledNotSend : enabled;
+
+            LOGGER.Trace("Actors: {0}", new ActorList(actorList, choices[0]));
 
             return choices[0];
         }

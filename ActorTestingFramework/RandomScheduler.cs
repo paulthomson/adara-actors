@@ -22,16 +22,16 @@ namespace ActorTestingFramework
             rand = new Random(seed);
         }
 
-        private static bool IsProgressOp(OpType op)
+        public static bool IsProgressOp(OpType op)
         {
             switch (op)
             {
                 case OpType.INVALID:
-                case OpType.WaitForDeadlock:
                 case OpType.Yield:
-                    return false;
+                case OpType.WaitForDeadlock:
                 case OpType.START:
                 case OpType.END:
+                    return false;
                 case OpType.CREATE:
                 case OpType.JOIN:
                 case OpType.SEND:
@@ -74,7 +74,7 @@ namespace ActorTestingFramework
                 }
             }
 
-            LOGGER.Trace("Actors: {0}", new ActorList(enabled, choices[nextIndex].id.id));
+            LOGGER.Trace("Actors: {0}", new ActorList(actorList, choices[nextIndex]));
 
             return choices[nextIndex];
         }
