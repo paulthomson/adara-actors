@@ -56,6 +56,7 @@ namespace ActorTestingFramework
 
             if (mailbox.Count <= 0)
             {
+                Safety.Assert(waiter == null);
                 waiter = runtime.GetCurrentActorInfo();
                 Safety.Assert(waiter.enabled);
                 waiter.enabled = false;
@@ -64,7 +65,8 @@ namespace ActorTestingFramework
             runtime.Schedule(OpType.RECEIVE);
 
             Safety.Assert(mailbox.Count > 0);
-            
+            Safety.Assert(waiter == null);
+
             var res = mailbox[0];
             mailbox.RemoveAt(0);
             return res;
