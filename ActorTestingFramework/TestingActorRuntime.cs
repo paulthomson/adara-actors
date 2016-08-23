@@ -28,6 +28,8 @@ namespace ActorTestingFramework
 
         private readonly IScheduler scheduler;
 
+        public bool allowTaskQueue = true;
+
         public TestingActorRuntime(IScheduler scheduler)
         {
             this.scheduler = scheduler;
@@ -67,6 +69,11 @@ namespace ActorTestingFramework
             {
                 // Task was created externally.
                 LOGGER.Trace($"TaskQueued {task.Id}");
+
+                if (!allowTaskQueue)
+                {
+                    throw new InvalidOperationException("A Task was queued outside of the testing runtime!");
+                }
 
                 Schedule(OpType.CREATE);
 
