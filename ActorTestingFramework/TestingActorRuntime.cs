@@ -12,7 +12,7 @@ namespace ActorTestingFramework
 {
     public class TestingActorRuntime : IActorRuntime, ITestingRuntime
     {
-        private static Logger LOGGER = LogManager.GetCurrentClassLogger();
+        private static readonly Logger LOGGER = LogManager.GetCurrentClassLogger();
 
         private readonly Dictionary<int, ActorId> taskIdToActorId =
             new Dictionary<int, ActorId>();
