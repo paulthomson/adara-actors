@@ -14,7 +14,7 @@ namespace ActorTestingFramework
         private readonly List<int> changePoints; 
 
         private Random rand;
-        private int maxSteps;
+        public int maxSteps;
         private int numSteps;
 
         public PCTScheduler(int seed, int numChangePoints)
@@ -60,21 +60,17 @@ namespace ActorTestingFramework
                 }
             }
 
-            if (currentActor.currentOp == OpType.Yield)
-            {
-                currentActor.enabled = false;
-            }
+            var enabledWithoutYield =
+                actorPriorityList.Where(
+                    info =>
+                        info.enabled &&
+                        (currentActor != info || info.currentOp != OpType.Yield)).ToList();
 
-            if (RandomScheduler.IsProgressOp(currentActor.currentOp))
-            {
-                foreach (var actorInfo in
-                    actorList.Where(info => info.currentOp == OpType.Yield && !info.enabled))
-                {
-                    actorInfo.enabled = true;
-                }
-            }
+            var enabledWithYield = actorPriorityList.Where(info => info.enabled).ToList();
 
-            var enabled = actorPriorityList.Where(info => info.enabled).ToList();
+            var enabled = enabledWithoutYield.Count == 0
+                ? enabledWithYield
+                : enabledWithoutYield;
 
             if (enabled.Count == 0)
             {
