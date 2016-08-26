@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace ActorTestingFramework
@@ -20,7 +21,7 @@ namespace ActorTestingFramework
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("\n\n");
-            foreach (var actorInfo in actorList)
+            foreach (var actorInfo in actorList.Where(info => !info.terminated))
             {
                 string prefix = "";
                 if (actorInfo.enabled)
