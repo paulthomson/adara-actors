@@ -12,10 +12,13 @@ namespace ActorTestingFramework
         private readonly List<ActorInfo> actorPriorityList;
         private readonly int numChangePoints;
         private readonly List<int> changePoints; 
+        private readonly List<ActorInfo> badActors;
 
         private Random rand;
         public int maxSteps;
         private int numSteps;
+        public bool expectBadActor;
+
 
         public PCTScheduler(int seed, int numChangePoints)
         {
@@ -23,12 +26,21 @@ namespace ActorTestingFramework
             this.numChangePoints = numChangePoints;
             changePoints = new List<int>();
             actorPriorityList = new List<ActorInfo>();
+            badActors = new List<ActorInfo>();
         }
 
         private void InsertActorRandomly(ActorInfo actorInfo)
         {
             int pos = rand.Next(actorPriorityList.Count + 1);
             actorPriorityList.Insert(pos, actorInfo);
+
+            if (expectBadActor)
+            {
+                if (actorInfo.name != null && actorInfo.name.StartsWith("bad"))
+                {
+                    badActors.Add(actorInfo);
+                }
+            }
         }
 
         public void SetSeed(int seed)
@@ -54,8 +66,21 @@ namespace ActorTestingFramework
                 ++numSteps;
                 if (changePoints.Contains(numSteps))
                 {
-                    actorPriorityList.Remove(currentActor);
-                    actorPriorityList.Add(currentActor);
+                    if (badActors.Count > 0)
+                    {
+                        LOGGER.Info("ChangePoint {0}: boosting bad actor", numSteps);
+                        // move bad actor to the highest priority.
+                        actorPriorityList.Remove(badActors[0]);
+                        actorPriorityList.Insert(0, badActors[0]);
+                        badActors.RemoveAt(0);
+                    }
+                    else
+                    {
+                        LOGGER.Info("ChangePoint {0}: lowering current actor", numSteps);
+                        // move current actor to the lowest priority.
+                        actorPriorityList.Remove(currentActor);
+                        actorPriorityList.Add(currentActor);
+                    }
                     changePoints.Remove(numSteps);
                 }
             }
@@ -92,6 +117,7 @@ namespace ActorTestingFramework
             actorPriorityList.Clear();
             maxSteps = Math.Max(maxSteps, numSteps);
             numSteps = 0;
+            badActors.Clear();
             changePoints.Clear();
             for (int i = 0; i < numChangePoints; ++i)
             {
