@@ -26,6 +26,8 @@ namespace ActorTestingFramework
 
         private volatile bool terminated;
 
+        private Exception error = null;
+
         private readonly IScheduler scheduler;
 
         public bool allowTaskQueue = true;
@@ -241,6 +243,11 @@ namespace ActorTestingFramework
             }
         }
 
+        public Exception GetError()
+        {
+            return error;
+        }
+
         public void WaitForAllActorsToTerminate()
         {
             foreach (var info in actorList)
@@ -308,26 +315,36 @@ namespace ActorTestingFramework
             }
             catch (ActorTerminatedException)
             {
-                
+
+            }
+            catch (Exception ex)
+            {
+                runtime.error = ex;
+                runtime.terminated = true;
+                runtime.ActivateAllActors();
             }
             finally
             {
                 try
                 {
-                    runtime.Schedule(OpType.END, info);
-
-                    lock (info.mutex)
+                    if (!runtime.terminated)
                     {
-                        info.enabled = false;
-                        info.terminated = true;
-                        foreach (var waiter in info.terminateWaiters)
+                        runtime.Schedule(OpType.END, info);
+
+                        lock (info.mutex)
                         {
-                            waiter.enabled = true;
+                            info.enabled = false;
+                            info.terminated = true;
+                            foreach (var waiter in info.terminateWaiters)
+                            {
+                                waiter.enabled = true;
+                            }
+                            info.terminateWaiters.Clear();
                         }
-                        info.terminateWaiters.Clear();
+
+                        runtime.Schedule(OpType.END, info);
                     }
 
-                    runtime.Schedule(OpType.END, info);
                 }
                 catch (ActorTerminatedException)
                 {
@@ -472,7 +489,7 @@ namespace ActorTestingFramework
                 lock (info.mutex)
                 {
                     info.active = true;
-                    info.enabled = false;
+                    info.enabled = true;
                     Monitor.PulseAll(info.mutex);
                 }
             }

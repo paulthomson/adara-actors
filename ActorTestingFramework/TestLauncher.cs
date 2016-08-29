@@ -55,6 +55,11 @@ namespace ActorTestingFramework
 
         }
 
+        public Exception GetError()
+        {
+            return runtime.GetError();
+        }
+
         #endregion
     }
 }

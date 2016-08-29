@@ -9,16 +9,19 @@ namespace ActorTestingFramework
     public class RandomScheduler : IScheduler
     {
         private static readonly Logger LOGGER = LogManager.GetCurrentClassLogger();
+        private readonly int stepLimit;
 
         private Random rand;
+        private int numSteps;
 
-        public RandomScheduler(int seed)
-        {
-            rand = new Random(seed);
-        }
+        private int maxSteps;
+        private int maxActors;
+        private int maxEnabledActors;
 
-        public void SetSeed(int seed)
+
+        public RandomScheduler(int seed, int stepLimit)
         {
+            this.stepLimit = stepLimit;
             rand = new Random(seed);
         }
 
@@ -46,12 +49,20 @@ namespace ActorTestingFramework
 
         public ActorInfo GetNext(List<ActorInfo> actorList, ActorInfo currentActor)
         {
-            if (currentActor.currentOp == OpType.Yield)
-            {
-                currentActor.enabled = false;
-            }
+            var enabledWithoutYield =
+                actorList.Where(
+                    info =>
+                        info.enabled &&
+                        (currentActor != info || info.currentOp != OpType.Yield)).ToList();
 
-            var enabled = actorList.Where(info => info.enabled).ToList();
+            var enabledWithYield = actorList.Where(info => info.enabled).ToList();
+
+            maxActors = Math.Max(maxActors, actorList.Count);
+            maxEnabledActors = Math.Max(maxEnabledActors, enabledWithYield.Count);
+
+            var enabled = enabledWithoutYield.Count == 0
+                ? enabledWithYield
+                : enabledWithoutYield;
 
             if (enabled.Count == 0)
             {
@@ -61,26 +72,57 @@ namespace ActorTestingFramework
             var enabledNotSend =
                 enabled.Where(info => info.currentOp != OpType.SEND).ToList();
 
-            var choices = enabledNotSend.Count > 0 ? enabledNotSend : enabled;
-
-            int nextIndex = rand.Next(choices.Count);
-
-            if (IsProgressOp(choices[nextIndex].currentOp))
-            {
-                foreach (var actorInfo in
-                    actorList.Where(info => info.currentOp == OpType.Yield && !info.enabled))
-                {
-                    actorInfo.enabled = true;
-                }
-            }
+            var choices = enabledNotSend.Count > 0 ? new List<ActorInfo> { enabledNotSend[0]}  : enabled;
+            
+            int nextIndex = choices.Count == 1 ? 0 : rand.Next(choices.Count);
 
             LOGGER.Trace("Actors: {0}", new ActorList(actorList, choices[nextIndex]));
+
+            if (numSteps >= stepLimit)
+            {
+                return null;
+            }
+
+            ++numSteps;
 
             return choices[nextIndex];
         }
 
         public void NextSchedule()
         {
+            maxSteps = Math.Max(maxSteps, numSteps);
+
+            numSteps = 0;
+        }
+
+        public void SetSeed(int seed)
+        {
+            rand = new Random(seed);
+        }
+
+        public int GetNumSteps()
+        {
+            return numSteps;
+        }
+
+        public int GetStepLimit()
+        {
+            return stepLimit;
+        }
+
+        public int GetMaxSteps()
+        {
+            return maxSteps;
+        }
+
+        public int GetMaxActors()
+        {
+            return maxActors;
+        }
+
+        public int GetMaxEnabledActors()
+        {
+            return maxEnabledActors;
         }
 
         #endregion

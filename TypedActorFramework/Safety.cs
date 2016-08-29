@@ -8,13 +8,13 @@ namespace TypedActorFramework
         [ContractAnnotation("condition:false => halt")]
         public static void Assert(bool condition, string message)
         {
-            Debug.Assert(condition, message);
+            Trace.Assert(condition, message);
         }
 
         [ContractAnnotation("condition:false => halt")]
         public static void Assert(bool condition)
         {
-            Debug.Assert(condition);
+            Trace.Assert(condition);
         }
     }
 }
