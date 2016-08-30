@@ -17,11 +17,10 @@ namespace ActorTestingFramework
 
         private Random rand;
         public int maxSteps;
-        private int numSteps;
+        public int numSteps;
         public bool expectBadActor;
         public int maxActors;
         public int maxEnabledActors;
-
 
         public PCTScheduler(int seed, int numChangePoints, int stepLimit)
         {
@@ -59,20 +58,10 @@ namespace ActorTestingFramework
                 InsertActorRandomly(actorList[i]);
             }
 
-            var enabledWithoutYield =
-                actorPriorityList.Where(
-                    info =>
-                        info.enabled &&
-                        (currentActor != info || info.currentOp != OpType.Yield)).ToList();
-
-            var enabledWithYield = actorPriorityList.Where(info => info.enabled).ToList();
+            var enabled = actorPriorityList.Where(info => info.enabled).ToList();
 
             maxActors = Math.Max(maxActors, actorList.Count);
-            maxEnabledActors = Math.Max(maxEnabledActors, enabledWithYield.Count);
-
-            var enabled = enabledWithoutYield.Count == 0
-                ? enabledWithYield
-                : enabledWithoutYield;
+            maxEnabledActors = Math.Max(maxEnabledActors, enabled.Count);
 
             if (enabled.Count == 0)
             {
@@ -80,7 +69,7 @@ namespace ActorTestingFramework
             }
 
             var enabledNotSend =
-                enabled.Where(info => info.currentOp != OpType.SEND).ToList();
+                enabled.Where(info => info.currentOp != OpType.SEND && info.currentOp != OpType.Yield).ToList();
 
             var choices = enabledNotSend.Count > 0 ? enabledNotSend : enabled;
 
@@ -116,13 +105,23 @@ namespace ActorTestingFramework
                 }
             }
 
+            if (choices[0].currentOp == OpType.Yield)
+            {
+                LOGGER.Info("Step {0}: lowering current actor because of yield.", numSteps);
+                actorPriorityList.Remove(choices[0]);
+                actorPriorityList.Add(choices[0]);
+            }
+
             return choices[0];
         }
 
         public void NextSchedule()
         {
             actorPriorityList.Clear();
-            maxSteps = Math.Max(maxSteps, numSteps);
+            if (numSteps != stepLimit)
+            {
+                maxSteps = Math.Max(maxSteps, numSteps);
+            }
             numSteps = 0;
             badActors.Clear();
             changePoints.Clear();

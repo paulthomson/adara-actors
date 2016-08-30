@@ -25,44 +25,14 @@ namespace ActorTestingFramework
             rand = new Random(seed);
         }
 
-        public static bool IsProgressOp(OpType op)
-        {
-            switch (op)
-            {
-                case OpType.INVALID:
-                case OpType.Yield:
-                case OpType.WaitForDeadlock:
-                case OpType.START:
-                case OpType.END:
-                    return false;
-                case OpType.CREATE:
-                case OpType.JOIN:
-                case OpType.SEND:
-                case OpType.RECEIVE:
-                    return true;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(op), op, null);
-            }
-        }
-
         #region Implementation of IScheduler
 
         public ActorInfo GetNext(List<ActorInfo> actorList, ActorInfo currentActor)
         {
-            var enabledWithoutYield =
-                actorList.Where(
-                    info =>
-                        info.enabled &&
-                        (currentActor != info || info.currentOp != OpType.Yield)).ToList();
-
-            var enabledWithYield = actorList.Where(info => info.enabled).ToList();
+            var enabled = actorList.Where(info => info.enabled).ToList();
 
             maxActors = Math.Max(maxActors, actorList.Count);
-            maxEnabledActors = Math.Max(maxEnabledActors, enabledWithYield.Count);
-
-            var enabled = enabledWithoutYield.Count == 0
-                ? enabledWithYield
-                : enabledWithoutYield;
+            maxEnabledActors = Math.Max(maxEnabledActors, enabled.Count);
 
             if (enabled.Count == 0)
             {
@@ -70,9 +40,12 @@ namespace ActorTestingFramework
             }
 
             var enabledNotSend =
-                enabled.Where(info => info.currentOp != OpType.SEND).ToList();
+                enabled.Where(
+                    info =>
+                        info.currentOp != OpType.SEND &&
+                        info.currentOp != OpType.Yield).ToList();
 
-            var choices = enabledNotSend.Count > 0 ? new List<ActorInfo> { enabledNotSend[0]}  : enabled;
+            var choices = enabledNotSend.Count > 0 ? new List<ActorInfo> { enabledNotSend[0] }  : enabled;
             
             int nextIndex = choices.Count == 1 ? 0 : rand.Next(choices.Count);
 
@@ -90,7 +63,10 @@ namespace ActorTestingFramework
 
         public void NextSchedule()
         {
-            maxSteps = Math.Max(maxSteps, numSteps);
+            if (numSteps != stepLimit)
+            {
+                maxSteps = Math.Max(maxSteps, numSteps);
+            }
 
             numSteps = 0;
         }

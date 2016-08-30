@@ -27,7 +27,6 @@ namespace ActorTestingFramework
         public void Execute(Action<IActorRuntime, ITestingRuntime> action, IScheduler scheduler)
         {
             runtime = new TestingActorRuntime(scheduler);
-            scheduler.NextSchedule();
 
             // TODO: Remove this somehow.
             TaskHelper.runtime = runtime;
