@@ -76,7 +76,7 @@ namespace ActorTestingFramework
             LOGGER.Trace("Actors: {0}", new ActorList(actorList, choices[0]));
 
             // Increment num steps and reduce priority of next actor if this is a change point.
-            if (choices[0].currentOp == OpType.SEND)
+            if (choices[0].currentOp == OpType.SEND || choices[0].currentOp == OpType.Yield)
             {
                 if (numSteps >= stepLimit)
                 {

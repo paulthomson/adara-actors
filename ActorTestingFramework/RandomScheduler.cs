@@ -56,7 +56,11 @@ namespace ActorTestingFramework
                 return null;
             }
 
-            ++numSteps;
+            if (choices[nextIndex].currentOp == OpType.SEND ||
+                choices[nextIndex].currentOp == OpType.Yield)
+            {
+                ++numSteps;
+            }
 
             return choices[nextIndex];
         }
