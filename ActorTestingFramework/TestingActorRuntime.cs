@@ -313,9 +313,12 @@ namespace ActorTestingFramework
                 }
                 throw;
             }
-            catch (ActorTerminatedException)
+            catch (ActorTerminatedException ex)
             {
-
+                if (mainThread && runtime.error == null)
+                {
+                    runtime.error = new Exception("Main actor did not terminate.", ex);
+                }
             }
             catch (Exception ex)
             {
