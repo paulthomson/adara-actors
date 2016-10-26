@@ -1,10 +1,10 @@
 # Adara Actors
 
-Adata actors is a typed actors framework for C#. The focus is currently on actors that run within a single process.
+Adara actors is a statically-typed actors framework for C#. The focus is currently on actors that run within a single process.
 
 ## Motivation
 
-Libraries like P# and Akka typically use "untyped" actors. That is, there are no static checks or hints about what the type of an actor is. For example:
+Libraries like P# and Akka typically use dynamically-typed actors (which we refer to as untyped actors). That is, there are no static checks or hints about what the type of an actor is. For example:
 
 ```c#
 // We can see that the type of the actor will be `Human` in this case
@@ -27,11 +27,11 @@ The compiler and IDE cannot help us. It is also hard to find the message handler
 
 From there, you can jump to the `HandleEat` method.
 
-A further potential issue is that your code is very dependent on the P# classes. As such, your code is somewhat "locked-in" to the framework that you have chosen, even though your code is really just message passing. It would be ideal if we could write code that is independent of the chosen runtime/framework such that it could run on different runtimes (e.g. P#, Akka, something else) without changes.
+A further potential issue is that your code is not portable; it is dependent on the P# classes and so is somewhat "locked-in" to the framework that you have chosen, even though your code is really just message passing. It would be ideal if we could write code that is portable; i.e. independent of the chosen runtime/framework such that it could run on different runtimes (e.g. P#, Akka, something else) without changes.
 
 ## Solution
 
-With typed actors, we use interfaces.
+With Adara's statically-typed actors, we use interfaces.
 
 ```c#
 // IHuman is an interface. A new instance of Human provides the handlers and private state of the actor.
