@@ -251,7 +251,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             var candidateThreadIds = new HashSet<uint>();
             
             var beforeA = GetThreadsAt(stack, lastAccessIndex - 1);
-            if (beforeA.List.Count >= step.Id && beforeA.List[step.Id].Enabled)
+            if (beforeA.List.Count > step.Id && beforeA.List[step.Id].Enabled)
             {
                 candidateThreadIds.Add((uint) step.Id);
             }
