@@ -219,8 +219,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             TidEntry step)
         {
             var a = GetSelectedTidEntry(stack, lastAccessIndex);
-            if (a.TargetId != step.TargetId ||
-                HB(stack, lastAccessIndex, i) ||
+            if (HB(stack, lastAccessIndex, i) ||
                 !Reversible(stack, lastAccessIndex, i)) return;
 
             // Find candidates:
