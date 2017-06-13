@@ -25,7 +25,7 @@ namespace ActorTestingFramework
 
         public void Send(T msg)
         {
-            runtime.Schedule(OpType.SEND, ownerActorInfo.id.id);
+            runtime.Schedule(OpType.SEND, TargetType.Queue, ownerActorInfo.id.id);
             LogSend(msg);
             mailbox.Add(msg);
 
@@ -62,7 +62,7 @@ namespace ActorTestingFramework
                 waiter.enabled = false;
             }
 
-            runtime.Schedule(OpType.RECEIVE, ownerActorInfo.id.id);
+            runtime.Schedule(OpType.RECEIVE, TargetType.Queue, ownerActorInfo.id.id);
 
             Safety.Assert(mailbox.Count > 0);
             Safety.Assert(waiter == null);

@@ -40,6 +40,11 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         public OpType OpType;
 
         /// <summary>
+        /// Target type. E.g. thread, queue, mutex, variable.
+        /// </summary>
+        public TargetType TargetType;
+
+        /// <summary>
         /// Target of the operation.
         /// </summary>
         public int TargetId;
@@ -51,8 +56,9 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         /// <param name="id"></param>
         /// <param name="enabled"></param>
         /// <param name="opType"></param>
+        /// <param name="targetType"></param>
         /// <param name="targetId"></param>
-        public TidEntry(int id, bool enabled, OpType opType, int targetId)
+        public TidEntry(int id, bool enabled, OpType opType, TargetType targetType, int targetId)
         {
             Id = id;
             Enabled = enabled;
@@ -60,13 +66,15 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             Sleep = false;
             Backtrack = false;
             OpType = opType;
+            TargetType = targetType;
             TargetId = targetId;
+            
         }
 
         /// <summary>
         /// 
         /// </summary>
-        public static Comparer ComparerSingleton = new Comparer();
+        public static readonly Comparer ComparerSingleton = new Comparer();
 
         /// <summary>
         /// 

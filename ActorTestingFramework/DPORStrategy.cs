@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Microsoft.PSharp.TestingServices.Scheduling.POR;
 
 namespace ActorTestingFramework
@@ -8,13 +9,13 @@ namespace ActorTestingFramework
 
         private readonly Stack Stack;
         private readonly DPORAlgorithm Dpor;
-        private readonly bool SleepSets;
+        private readonly bool UseSleepSets;
 
-        public DPORStrategy(bool dpor, bool sleepSets)
+        public DPORStrategy(bool dpor, bool useSleepSets)
         {
             Stack = new Stack();
             Dpor = dpor ? new DPORAlgorithm() : null;
-            SleepSets = sleepSets;
+            UseSleepSets = useSleepSets;
             Reset();
         }
 
@@ -36,16 +37,15 @@ namespace ActorTestingFramework
                 }
             }
 
-
             bool added = Stack.Push(actorList, currentActor.id.id);
 
             if (added)
             {
                 TidEntryList top = Stack.GetTop();
 
-                if (SleepSets)
+                if (UseSleepSets)
                 {
-                    // TODO: update sleep set.
+                    SleepSets.UpdateSleepSets(Stack);
                 }
 
                 if (Dpor == null)
@@ -56,9 +56,6 @@ namespace ActorTestingFramework
                 {
                     top.AddFirstEnabledNotSleptToBacktrack(currentActor.id.id);
                 }
-
-                
-
             }
 
             int nextTidIndex = Stack.GetSelectedOrFirstBacktrackNotSlept(currentActor.id.id);

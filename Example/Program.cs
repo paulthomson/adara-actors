@@ -128,7 +128,7 @@ namespace Example
             // Do 100 executions of the test case below.
 
             ITestLauncher testLauncher = new TestLauncher();
-            DPORStrategy strategy = new DPORStrategy(true, false);
+            DPORStrategy strategy = new DPORStrategy(true, true);
 
             for (int i = 1; i <= 1000000; ++i)
             {

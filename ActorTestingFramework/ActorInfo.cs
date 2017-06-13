@@ -21,6 +21,7 @@ namespace ActorTestingFramework
         public bool terminated;
         public OpType currentOp = OpType.INVALID;
         public int currentOpTarget = -1;
+        public TargetType currentOpTargetType = TargetType.Thread;
 
         public CancellationTokenSource cts;
         public List<Exception> exceptions;

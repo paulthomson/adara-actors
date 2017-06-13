@@ -33,6 +33,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                         machineInfo.id.id,
                         machineInfo.enabled,
                         machineInfo.currentOp,
+                        machineInfo.currentOpTargetType,
                         machineInfo.currentOpTarget));
             }
             
@@ -81,6 +82,11 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         public TidEntryList GetTop()
         {
             return StackInternal[nextStackPos - 1];
+        }
+
+        public TidEntryList GetSecondFromTop()
+        {
+            return StackInternal[nextStackPos - 2];
         }
 
         /// <summary>

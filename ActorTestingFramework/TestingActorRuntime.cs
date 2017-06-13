@@ -77,7 +77,7 @@ namespace ActorTestingFramework
                     throw new InvalidOperationException("A Task was queued outside of the testing runtime!");
                 }
 
-                Schedule(OpType.CREATE, -1);
+                Schedule(OpType.CREATE, TargetType.Thread, - 1);
 
                 var actorInfo = CreateActor(task, null);
                 var oldAction = action;
@@ -146,7 +146,7 @@ namespace ActorTestingFramework
         public void Yield()
         {
             var info = GetCurrentActorInfo();
-            Schedule(OpType.Yield, info.id.id);
+            Schedule(OpType.Yield, TargetType.Thread, info.id.id);
         }
 
         public IMailbox<object> MailboxFromTask(Task task)
@@ -217,7 +217,7 @@ namespace ActorTestingFramework
             var actorInfo = GetCurrentActorInfo();
             actorInfo.enabled = false;
             actorInfo.waitingForDeadlock = true;
-            Schedule(OpType.WaitForDeadlock, actorInfo.id.id);
+            Schedule(OpType.WaitForDeadlock, TargetType.Thread, actorInfo.id.id);
         }
 
         #endregion
@@ -230,7 +230,7 @@ namespace ActorTestingFramework
                 otherInfo.terminateWaiters.Add(actorInfo);
             }
 
-            Schedule(OpType.JOIN, otherInfo.id.id);
+            Schedule(OpType.JOIN, TargetType.Thread, otherInfo.id.id);
 
             Safety.Assert(otherInfo.terminated);
         }
@@ -333,7 +333,7 @@ namespace ActorTestingFramework
                 {
                     if (!runtime.terminated)
                     {
-                        runtime.Schedule(OpType.END, info.id.id, info);
+                        runtime.Schedule(OpType.END, TargetType.Thread, info.id.id, info);
 
                         lock (info.mutex)
                         {
@@ -346,7 +346,7 @@ namespace ActorTestingFramework
                             info.terminateWaiters.Clear();
                         }
 
-                        runtime.Schedule(OpType.END, info.id.id, info);
+                        runtime.Schedule(OpType.END, TargetType.Thread, info.id.id, info);
                     }
 
                 }
@@ -388,7 +388,7 @@ namespace ActorTestingFramework
             // Ensure that calling Task has an id.
             GetCurrentActorInfo();
 
-            Schedule(OpType.CREATE, -1);
+            Schedule(OpType.CREATE, TargetType.Thread , - 1);
 
             CancellationTokenSource cts = new CancellationTokenSource();
             Task<T> actorTask = new Task<T>(() => ActorBody(func, this, false), cts.Token);
@@ -408,7 +408,7 @@ namespace ActorTestingFramework
         }
 
 
-        public void Schedule(OpType opType, int opTarget, ActorInfo currentActor = null)
+        public void Schedule(OpType opType, TargetType targetType, int opTarget, ActorInfo currentActor = null)
         {
             if (currentActor == null)
             {
@@ -421,6 +421,7 @@ namespace ActorTestingFramework
             }
 
             currentActor.currentOp = opType;
+            currentActor.currentOpTargetType = targetType;
             currentActor.currentOpTarget = opTarget;
 
             ActorInfo nextActor = scheduler.GetNext(actorList, currentActor);

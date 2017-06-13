@@ -82,7 +82,9 @@
     <Compile Include="RandomScheduler.cs" />
     <Compile Include="Safety.cs" />
     <Compile Include="SchedulingStrategyException.cs" />
+    <Compile Include="SleepSets.cs" />
     <Compile Include="Stack.cs" />
+    <Compile Include="TargetType.cs" />
     <Compile Include="TestingActorRuntime.cs" />
     <Compile Include="TestLauncher.cs" />
     <Compile Include="TidEntry.cs" />
