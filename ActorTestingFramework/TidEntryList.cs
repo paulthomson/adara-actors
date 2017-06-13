@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace Microsoft.PSharp.TestingServices.Scheduling.POR
 {
@@ -33,6 +36,30 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                     tidEntry.Backtrack = true;
                 }
             }
+        }
+
+        public string ShowEnabled()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("[");
+            foreach (var tidEntry in List.Where(entry => entry.Enabled))
+            {
+                if (tidEntry.Selected)
+                {
+                    sb.Append("*");
+                }
+                sb.Append("(");
+                sb.Append(tidEntry.Id);
+                sb.Append(", ");
+                sb.Append(tidEntry.OpType);
+                sb.Append(", ");
+                sb.Append(tidEntry.TargetType);
+                sb.Append("-");
+                sb.Append(tidEntry.TargetId);
+                sb.Append(") ");
+            }
+            sb.Append("]");
+            return sb.ToString();
         }
 
         /// <summary>

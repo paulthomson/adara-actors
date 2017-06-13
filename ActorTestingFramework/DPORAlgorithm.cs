@@ -190,8 +190,17 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                         break;
                     }
                     case OpType.WaitForDeadlock:
-                        // TODO: 
-                        break;
+                        for (int j = 0; j < threadIdToLastOpIndex.Length; j++)
+                        {
+                            if (j == step.Id)
+                            {
+                                continue;
+                            }
+                            ForVCJoinFromVC(i, threadIdToLastOpIndex[j]);
+                        }
+                        // Return early. No backtrack.
+                        return;
+
                     case OpType.Yield:
                         // TODO: 
                         break;
@@ -260,7 +269,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             {
                 if (j != a.Id &&
                     j != step.Id &&
-                    beforeA.List[(int) j].Enabled)
+                    (beforeA.List[(int) j].Enabled || beforeA.List[(int)j].OpType == OpType.Yield))
                 {
                     lookingFor.Add(j);
                 }

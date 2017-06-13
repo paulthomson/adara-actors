@@ -146,6 +146,7 @@ namespace ActorTestingFramework
         public void Yield()
         {
             var info = GetCurrentActorInfo();
+            info.enabled = false;
             Schedule(OpType.Yield, TargetType.Thread, info.id.id);
         }
 
@@ -216,7 +217,6 @@ namespace ActorTestingFramework
         {
             var actorInfo = GetCurrentActorInfo();
             actorInfo.enabled = false;
-            actorInfo.waitingForDeadlock = true;
             Schedule(OpType.WaitForDeadlock, TargetType.Thread, actorInfo.id.id);
         }
 

@@ -10,12 +10,15 @@ namespace ActorTestingFramework
         private readonly Stack Stack;
         private readonly DPORAlgorithm Dpor;
         private readonly bool UseSleepSets;
+        private readonly int StepLimit;
+        private int StepCount;
 
-        public DPORStrategy(bool dpor, bool useSleepSets)
+        public DPORStrategy(bool dpor, bool useSleepSets, int stepLimit = -1)
         {
             Stack = new Stack();
             Dpor = dpor ? new DPORAlgorithm() : null;
             UseSleepSets = useSleepSets;
+            StepLimit = stepLimit;
             Reset();
         }
 
@@ -24,15 +27,28 @@ namespace ActorTestingFramework
 
         public ActorInfo GetNext(List<ActorInfo> actorList, ActorInfo currentActor)
         {
-            // "Waiting for deadlock" hack.
+            // "Yield" and "Waiting for deadlock" hack.
             if (actorList.TrueForAll(info => !info.enabled))
             {
-                foreach (var actorInfo in actorList)
+                if (actorList.Exists(info => info.currentOp == OpType.Yield))
                 {
-                    if (actorInfo.waitingForDeadlock)
+                    foreach (var actorInfo in actorList)
                     {
-                        actorInfo.enabled = true;
-                        actorInfo.waitingForDeadlock = false;
+                        if (actorInfo.currentOp == OpType.Yield)
+                        {
+                            actorInfo.enabled = true;
+                        }
+                    }
+                }
+                else if (actorList.Exists(
+                    info => info.currentOp == OpType.WaitForDeadlock))
+                {
+                    foreach (var actorInfo in actorList)
+                    {
+                        if (actorInfo.currentOp == OpType.WaitForDeadlock)
+                        {
+                            actorInfo.enabled = true;
+                        }
                     }
                 }
             }
@@ -65,6 +81,8 @@ namespace ActorTestingFramework
                 return null;
             }
 
+            ++StepCount;
+
             TidEntry nextTidEntry = Stack.GetTop().List[nextTidIndex];
 
             if (!nextTidEntry.Selected)
@@ -94,7 +112,7 @@ namespace ActorTestingFramework
 
         public int GetStepLimit()
         {
-            throw new System.NotImplementedException();
+            return StepLimit;
         }
 
         public int GetMaxSteps()
@@ -115,6 +133,7 @@ namespace ActorTestingFramework
         public void Reset()
         {
             Stack.Clear();
+            StepCount = 0;
         }
 
         #endregion

@@ -17,7 +17,6 @@ namespace ActorTestingFramework
 
         public bool active = true;
         public bool enabled = true;
-        public bool waitingForDeadlock;
         public bool terminated;
         public OpType currentOp = OpType.INVALID;
         public int currentOpTarget = -1;
