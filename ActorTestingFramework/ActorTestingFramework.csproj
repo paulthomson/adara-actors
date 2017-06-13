@@ -70,6 +70,8 @@
     <Compile Include="ActorInfo.cs" />
     <Compile Include="ActorList.cs" />
     <Compile Include="ActorTerminatedException.cs" />
+    <Compile Include="DPORAlgorithm.cs" />
+    <Compile Include="DPORStrategy.cs" />
     <Compile Include="IScheduler.cs" />
     <Compile Include="ITestingRuntime.cs" />
     <Compile Include="ITestLauncher.cs" />
@@ -79,8 +81,12 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RandomScheduler.cs" />
     <Compile Include="Safety.cs" />
+    <Compile Include="SchedulingStrategyException.cs" />
+    <Compile Include="Stack.cs" />
     <Compile Include="TestingActorRuntime.cs" />
     <Compile Include="TestLauncher.cs" />
+    <Compile Include="TidEntry.cs" />
+    <Compile Include="TidEntryList.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ActorHelpers\ActorHelpers.csproj">

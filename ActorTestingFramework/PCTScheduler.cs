@@ -115,7 +115,7 @@ namespace ActorTestingFramework
             return choices[0];
         }
 
-        public void NextSchedule()
+        public bool NextSchedule()
         {
             actorPriorityList.Clear();
             if (numSteps != stepLimit)
@@ -129,6 +129,7 @@ namespace ActorTestingFramework
             {
                 changePoints.Add(rand.Next(maxSteps) + 1);
             }
+            return true;
         }
 
         public void SetSeed(int seed)
@@ -159,6 +160,11 @@ namespace ActorTestingFramework
         public int GetMaxEnabledActors()
         {
             return maxEnabledActors;
+        }
+
+        public void Reset()
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

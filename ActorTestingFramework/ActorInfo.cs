@@ -20,6 +20,7 @@ namespace ActorTestingFramework
         public bool waitingForDeadlock;
         public bool terminated;
         public OpType currentOp = OpType.INVALID;
+        public int currentOpTarget = -1;
 
         public CancellationTokenSource cts;
         public List<Exception> exceptions;

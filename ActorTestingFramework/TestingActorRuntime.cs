@@ -77,7 +77,7 @@ namespace ActorTestingFramework
                     throw new InvalidOperationException("A Task was queued outside of the testing runtime!");
                 }
 
-                Schedule(OpType.CREATE);
+                Schedule(OpType.CREATE, -1);
 
                 var actorInfo = CreateActor(task, null);
                 var oldAction = action;
@@ -146,7 +146,7 @@ namespace ActorTestingFramework
         public void Yield()
         {
             var info = GetCurrentActorInfo();
-            Schedule(OpType.Yield);
+            Schedule(OpType.Yield, info.id.id);
         }
 
         public IMailbox<object> MailboxFromTask(Task task)
@@ -217,7 +217,7 @@ namespace ActorTestingFramework
             var actorInfo = GetCurrentActorInfo();
             actorInfo.enabled = false;
             actorInfo.waitingForDeadlock = true;
-            Schedule(OpType.WaitForDeadlock);
+            Schedule(OpType.WaitForDeadlock, actorInfo.id.id);
         }
 
         #endregion
@@ -230,7 +230,7 @@ namespace ActorTestingFramework
                 otherInfo.terminateWaiters.Add(actorInfo);
             }
 
-            Schedule(OpType.JOIN);
+            Schedule(OpType.JOIN, otherInfo.id.id);
 
             Safety.Assert(otherInfo.terminated);
         }
@@ -281,6 +281,7 @@ namespace ActorTestingFramework
             {
                 Safety.Assert(info.active);
                 info.currentOp = OpType.START;
+                info.currentOpTarget = info.id.id;
 
                 if (!mainThread)
                 {
@@ -332,7 +333,7 @@ namespace ActorTestingFramework
                 {
                     if (!runtime.terminated)
                     {
-                        runtime.Schedule(OpType.END, info);
+                        runtime.Schedule(OpType.END, info.id.id, info);
 
                         lock (info.mutex)
                         {
@@ -345,7 +346,7 @@ namespace ActorTestingFramework
                             info.terminateWaiters.Clear();
                         }
 
-                        runtime.Schedule(OpType.END, info);
+                        runtime.Schedule(OpType.END, info.id.id, info);
                     }
 
                 }
@@ -387,7 +388,7 @@ namespace ActorTestingFramework
             // Ensure that calling Task has an id.
             GetCurrentActorInfo();
 
-            Schedule(OpType.CREATE);
+            Schedule(OpType.CREATE, -1);
 
             CancellationTokenSource cts = new CancellationTokenSource();
             Task<T> actorTask = new Task<T>(() => ActorBody(func, this, false), cts.Token);
@@ -407,7 +408,7 @@ namespace ActorTestingFramework
         }
 
 
-        public void Schedule(OpType opType, ActorInfo currentActor = null)
+        public void Schedule(OpType opType, int opTarget, ActorInfo currentActor = null)
         {
             if (currentActor == null)
             {
@@ -420,20 +421,26 @@ namespace ActorTestingFramework
             }
 
             currentActor.currentOp = opType;
+            currentActor.currentOpTarget = opTarget;
 
             ActorInfo nextActor = scheduler.GetNext(actorList, currentActor);
 
-            if (nextActor == null)
-            {
-                foreach (
-                    var waiter in
-                        actorList.Where(info => info.waitingForDeadlock))
-                {
-                    waiter.waitingForDeadlock = false;
-                    waiter.enabled = true;
-                }
-                nextActor = scheduler.GetNext(actorList, currentActor);
-            }
+//            if (nextActor == null)
+//            {
+//                bool changed = false;
+//                foreach (
+//                    var waiter in
+//                        actorList.Where(info => info.waitingForDeadlock))
+//                {
+//                    waiter.waitingForDeadlock = false;
+//                    waiter.enabled = true;
+//                    changed = true;
+//                }
+//                if (changed)
+//                {
+//                    nextActor = scheduler.GetNext(actorList, currentActor);
+//                }
+//            }
 
             if (nextActor == null)
             {

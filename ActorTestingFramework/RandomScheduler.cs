@@ -12,6 +12,7 @@ namespace ActorTestingFramework
         private readonly int stepLimit;
 
         private Random rand;
+        private readonly int seed;
         private int numSteps;
 
         private int maxSteps;
@@ -22,7 +23,8 @@ namespace ActorTestingFramework
         public RandomScheduler(int seed, int stepLimit)
         {
             this.stepLimit = stepLimit;
-            rand = new Random(seed);
+            this.seed = seed;
+            Reset();
         }
 
         #region Implementation of IScheduler
@@ -65,7 +67,7 @@ namespace ActorTestingFramework
             return choices[nextIndex];
         }
 
-        public void NextSchedule()
+        public bool NextSchedule()
         {
             if (numSteps != stepLimit)
             {
@@ -73,6 +75,7 @@ namespace ActorTestingFramework
             }
 
             numSteps = 0;
+            return true;
         }
 
         public void SetSeed(int seed)
@@ -103,6 +106,11 @@ namespace ActorTestingFramework
         public int GetMaxEnabledActors()
         {
             return maxEnabledActors;
+        }
+
+        public void Reset()
+        {
+            rand = new Random(seed);
         }
 
         #endregion
