@@ -49,6 +49,8 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         /// </summary>
         public int TargetId;
 
+        public int SendStepIndex;
+
 
         /// <summary>
         /// 
@@ -58,7 +60,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         /// <param name="opType"></param>
         /// <param name="targetType"></param>
         /// <param name="targetId"></param>
-        public TidEntry(int id, bool enabled, OpType opType, TargetType targetType, int targetId)
+        public TidEntry(int id, bool enabled, OpType opType, TargetType targetType, int targetId, int sendStepIndex)
         {
             Id = id;
             Enabled = enabled;
@@ -68,7 +70,9 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             OpType = opType;
             TargetType = targetType;
             TargetId = targetId;
-            
+            SendStepIndex = sendStepIndex;
+
+
         }
 
         /// <summary>

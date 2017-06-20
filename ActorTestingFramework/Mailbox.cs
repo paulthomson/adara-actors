@@ -8,11 +8,22 @@ namespace ActorTestingFramework
 {
     public class Mailbox<T> : IMailbox<T>
     {
+        private struct Msg
+        {
+            public T msg;
+            public int sendIndex;
+
+            public Msg(T msg_, int sendIndex_)
+            {
+                msg = msg_;
+                sendIndex = sendIndex_;
+            }
+        }
         private static Logger LOGGER = LogManager.GetCurrentClassLogger();
 
         public readonly ActorInfo ownerActorInfo;
         private readonly TestingActorRuntime runtime;
-        private readonly IList<T> mailbox;
+        private readonly IList<Msg> mailbox;
 
         private ActorInfo waiter = null;
 
@@ -20,19 +31,21 @@ namespace ActorTestingFramework
         {
             this.ownerActorInfo = ownerActorInfo;
             this.runtime = runtime;
-            mailbox = new List<T>();
+            mailbox = new List<Msg>();
         }
 
         public void Send(T msg)
         {
             runtime.Schedule(OpType.SEND, TargetType.Queue, ownerActorInfo.id.id);
             LogSend(msg);
-            mailbox.Add(msg);
+            Msg wrappedMsg = new Msg(msg, runtime.GetCurrentSchedulerStep());
+            mailbox.Add(wrappedMsg);
 
             if (waiter != null)
             {
                 Safety.Assert(!waiter.enabled);
                 waiter.enabled = true;
+                waiter.currentOpSendStepIndex = wrappedMsg.sendIndex;
                 waiter = null;
             }
         }
@@ -61,6 +74,10 @@ namespace ActorTestingFramework
                 Safety.Assert(waiter.enabled);
                 waiter.enabled = false;
             }
+            else
+            {
+                ownerActorInfo.currentOpSendStepIndex = mailbox[0].sendIndex;
+            }
 
             runtime.Schedule(OpType.RECEIVE, TargetType.Queue, ownerActorInfo.id.id);
 
@@ -69,7 +86,7 @@ namespace ActorTestingFramework
 
             var res = mailbox[0];
             mailbox.RemoveAt(0);
-            return res;
+            return res.msg;
         }
     }
 }

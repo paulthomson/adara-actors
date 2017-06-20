@@ -31,6 +31,32 @@ namespace ActorTestingFramework
 
         public ActorInfo GetNext(List<ActorInfo> actorList, ActorInfo currentActor)
         {
+            // "Yield" and "Waiting for deadlock" hack.
+            if (actorList.TrueForAll(info => !info.enabled))
+            {
+                if (actorList.Exists(info => info.currentOp == OpType.Yield))
+                {
+                    foreach (var actorInfo in actorList)
+                    {
+                        if (actorInfo.currentOp == OpType.Yield)
+                        {
+                            actorInfo.enabled = true;
+                        }
+                    }
+                }
+                else if (actorList.Exists(
+                    info => info.currentOp == OpType.WaitForDeadlock))
+                {
+                    foreach (var actorInfo in actorList)
+                    {
+                        if (actorInfo.currentOp == OpType.WaitForDeadlock)
+                        {
+                            actorInfo.enabled = true;
+                        }
+                    }
+                }
+            }
+
             var enabled = actorList.Where(info => info.enabled).ToList();
 
             maxActors = Math.Max(maxActors, actorList.Count);

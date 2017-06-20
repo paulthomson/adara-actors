@@ -16,8 +16,6 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         private uint[] threadIdToLastOpIndex; 
         private uint[] targetIdToLastCreateStartEnd;
         private uint[] targetIdToLastSend;
-        // List of prior sends that have not yet been received.
-        private List<uint>[] targetIdToListOfSends;
         private uint[] vcs;
 
         /// <summary>
@@ -25,7 +23,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         /// </summary>
         public DPORAlgorithm()
         {
-            // inital estimates
+            // initial estimates
 
             numThreads = 4;
             numSteps = 1 << 8;
@@ -33,11 +31,6 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             threadIdToLastOpIndex = new uint[numThreads];
             targetIdToLastCreateStartEnd = new uint[numThreads];
             targetIdToLastSend = new uint[numThreads];
-            targetIdToListOfSends = new List<uint>[numThreads];
-            for (int i = 0; i < numThreads; ++i)
-            {
-                targetIdToListOfSends[i] = new List<uint>();
-            }
             vcs = new uint[numSteps * numThreads];
         }
 
@@ -178,21 +171,18 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                     case OpType.SEND:
                     {
                         lastAccessIndex = targetIdToLastSend[targetId];
-                        targetIdToListOfSends[targetId].Add(i);
                         targetIdToLastSend[targetId] = i;
                         break;
                     }
                     case OpType.RECEIVE:
                     {
-                        var listOfSends = targetIdToListOfSends[targetId];
-                        lastAccessIndex = listOfSends[0];
-                        listOfSends.RemoveAt(0);
+                        lastAccessIndex = (uint) step.SendStepIndex;
                         break;
                     }
                     case OpType.WaitForDeadlock:
                         for (int j = 0; j < threadIdToLastOpIndex.Length; j++)
                         {
-                            if (j == step.Id)
+                            if (j == step.Id || threadIdToLastOpIndex[j] == 0)
                             {
                                 continue;
                             }
@@ -227,6 +217,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             uint i,
             TidEntry step)
         {
+            var aTidEntries = GetThreadsAt(stack, lastAccessIndex);
             var a = GetSelectedTidEntry(stack, lastAccessIndex);
             if (HB(stack, lastAccessIndex, i) ||
                 !Reversible(stack, lastAccessIndex, i)) return;
@@ -259,17 +250,16 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
 
             var candidateThreadIds = new HashSet<uint>();
             
-            var beforeA = GetThreadsAt(stack, lastAccessIndex - 1);
-            if (beforeA.List.Count > step.Id && beforeA.List[step.Id].Enabled)
+            if (aTidEntries.List.Count > step.Id && aTidEntries.List[step.Id].Enabled)
             {
                 candidateThreadIds.Add((uint) step.Id);
             }
             var lookingFor = new HashSet<uint>();
-            for (uint j = 0; j < beforeA.List.Count; ++j)
+            for (uint j = 0; j < aTidEntries.List.Count; ++j)
             {
                 if (j != a.Id &&
                     j != step.Id &&
-                    (beforeA.List[(int) j].Enabled || beforeA.List[(int)j].OpType == OpType.Yield))
+                    (aTidEntries.List[(int) j].Enabled || aTidEntries.List[(int)j].OpType == OpType.Yield))
                 {
                     lookingFor.Add(j);
                 }
@@ -316,7 +306,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             // Is one already backtracked?
             foreach (var tid in candidateThreadIds)
             {
-                if (beforeA.List[(int) tid].Backtrack)
+                if (aTidEntries.List[(int) tid].Backtrack)
                 {
                     return;
                 }
@@ -330,9 +320,9 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                 for (uint k = 0; k < numThreads; ++k)
                 {
                     if (candidateThreadIds.Contains(sleptThread) &&
-                        beforeA.List[(int)sleptThread].Sleep)
+                        aTidEntries.List[(int)sleptThread].Sleep)
                     {
-                        beforeA.List[(int)sleptThread].Backtrack = true;
+                        aTidEntries.List[(int)sleptThread].Backtrack = true;
                         return;
                     }
                     ++sleptThread;
@@ -351,7 +341,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                 {
                     if (candidateThreadIds.Contains(backtrackThread))
                     {
-                        beforeA.List[(int)backtrackThread].Backtrack = true;
+                        aTidEntries.List[(int)backtrackThread].Backtrack = true;
                         return;
                     }
                     ++backtrackThread;
@@ -386,21 +376,12 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                 threadIdToLastOpIndex = new uint[temp];
                 targetIdToLastCreateStartEnd = new uint[temp];
                 targetIdToLastSend = new uint[temp];
-                targetIdToListOfSends = new List<uint>[temp];
-                for (int i = 0; i < temp; ++i)
-                {
-                    targetIdToListOfSends[i] = new List<uint>();
-                }
             }
             else
             {
                 Array.Clear(threadIdToLastOpIndex, 0, threadIdToLastOpIndex.Length);
                 Array.Clear(targetIdToLastCreateStartEnd, 0, targetIdToLastCreateStartEnd.Length);
                 Array.Clear(targetIdToLastSend, 0, targetIdToLastSend.Length);
-                foreach (List<uint> t in targetIdToListOfSends)
-                {
-                    t.Clear();
-                }
             }
 
             uint numClocks = numThreads * numSteps;

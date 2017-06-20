@@ -34,7 +34,8 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                         machineInfo.enabled,
                         machineInfo.currentOp,
                         machineInfo.currentOpTargetType,
-                        machineInfo.currentOpTarget));
+                        machineInfo.currentOpTarget,
+                        machineInfo.currentOpSendStepIndex));
             }
             
             if (nextStackPos > StackInternal.Count)

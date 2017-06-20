@@ -11,7 +11,6 @@ namespace ActorTestingFramework
         private readonly DPORAlgorithm Dpor;
         private readonly bool UseSleepSets;
         private readonly int StepLimit;
-        private int StepCount;
 
         public DPORStrategy(bool dpor, bool useSleepSets, int stepLimit = -1)
         {
@@ -53,6 +52,11 @@ namespace ActorTestingFramework
                 }
             }
 
+            if (Stack.GetNumSteps() >= StepLimit)
+            {
+                return null;
+            }
+
             bool added = Stack.Push(actorList, currentActor.id.id);
 
             if (added)
@@ -80,8 +84,6 @@ namespace ActorTestingFramework
             {
                 return null;
             }
-
-            ++StepCount;
 
             TidEntry nextTidEntry = Stack.GetTop().List[nextTidIndex];
 
@@ -117,23 +119,22 @@ namespace ActorTestingFramework
 
         public int GetMaxSteps()
         {
-            throw new System.NotImplementedException();
+            return 0;
         }
 
         public int GetMaxActors()
         {
-            throw new System.NotImplementedException();
+            return 0;
         }
 
         public int GetMaxEnabledActors()
         {
-            throw new System.NotImplementedException();
+            return 0;
         }
 
         public void Reset()
         {
             Stack.Clear();
-            StepCount = 0;
         }
 
         #endregion

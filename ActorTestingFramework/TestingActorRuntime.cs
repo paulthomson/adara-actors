@@ -408,6 +408,11 @@ namespace ActorTestingFramework
         }
 
 
+        public int GetCurrentSchedulerStep()
+        {
+            return scheduler.GetNumSteps();
+        }
+
         public void Schedule(OpType opType, TargetType targetType, int opTarget, ActorInfo currentActor = null)
         {
             if (currentActor == null)

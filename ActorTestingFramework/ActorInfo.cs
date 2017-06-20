@@ -22,6 +22,12 @@ namespace ActorTestingFramework
         public int currentOpTarget = -1;
         public TargetType currentOpTargetType = TargetType.Thread;
 
+        /// <summary>
+        /// If the current op is a receive, then currentOpSendStepIndex
+        /// gives the index of the earlier corresponding send operation.
+        /// </summary>
+        public int currentOpSendStepIndex = -1;
+
         public CancellationTokenSource cts;
         public List<Exception> exceptions;
         public bool cancelled;
