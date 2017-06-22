@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.PSharp.TestingServices.Scheduling.POR;
 
 namespace ActorTestingFramework
@@ -56,7 +57,7 @@ namespace ActorTestingFramework
                 }
             }
 
-            if (Stack.GetNumSteps() >= StepLimit)
+            if (StepLimit >= 0 && Stack.GetNumSteps() >= StepLimit)
             {
                 nextActor = null;
                 return NextActorResult.HitStepLimit;

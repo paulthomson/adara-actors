@@ -44,8 +44,12 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("[");
-            foreach (var tidEntry in List.Where(entry => entry.Enabled))
+            foreach (var tidEntry in List)
             {
+                if (!tidEntry.Enabled)
+                {
+                    continue;
+                }
                 if (tidEntry.Selected)
                 {
                     sb.Append("*");
@@ -62,6 +66,18 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             }
             sb.Append("]");
             return sb.ToString();
+        }
+
+        public string ShowSelected()
+        {
+            int selectedIndex = TryGetSelected();
+            if (selectedIndex < 0)
+            {
+                return "-";
+            }
+            TidEntry selected = List[selectedIndex];
+            return $"({selected.Id}, {selected.OpType}, {selected.TargetType}, {selected.TargetId})";
+
         }
 
         /// <summary>

@@ -85,6 +85,16 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             }
         }
 
+        private void ClearVC(uint vc)
+        {
+            uint vcI = (vc - 1) * numThreads;
+            for (uint i = 0; i < numThreads; ++i)
+            {
+                vcs[vcI] = 0;
+                ++vcI;
+            }
+        }
+
         private uint[] GetVC(uint vc)
         {
             uint[] res = new uint[numThreads];
@@ -152,6 +162,10 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                 if (threadIdToLastOpIndex[step.Id] > 0)
                 {
                     FromVCSetVC(threadIdToLastOpIndex[step.Id], i);
+                }
+                else
+                {
+                    ClearVC(i);
                 }
                 ForVCSetClockToValue(i, (uint) step.Id, i);
                 threadIdToLastOpIndex[step.Id] = i;
