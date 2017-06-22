@@ -18,6 +18,15 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         private uint[] targetIdToLastSend;
         private uint[] vcs;
 
+        private readonly List<Race> races;
+
+        // Race replay suffix.
+        public readonly List<int> RaceReplaySuffix;
+
+        public int replayRaceIndex;
+
+        private readonly List<int> missingThreadIds;
+
         /// <summary>
         /// 
         /// </summary>
@@ -32,6 +41,10 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             targetIdToLastCreateStartEnd = new uint[numThreads];
             targetIdToLastSend = new uint[numThreads];
             vcs = new uint[numSteps * numThreads];
+            races = new List<Race>((int) numSteps);
+            RaceReplaySuffix = new List<int>();
+            missingThreadIds = new List<int>();
+            replayRaceIndex = 0;
         }
 
 
@@ -127,7 +140,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         /// 
         /// </summary>
         /// <param name="stack"></param>
-        public void DoDPOR(Stack stack)
+        public void DoDPOR(Stack stack, Random rand)
         {
             UpdateFieldsAndRealocateDatastructuresIfNeeded(stack);
             
@@ -188,8 +201,8 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                             }
                             ForVCJoinFromVC(i, threadIdToLastOpIndex[j]);
                         }
-                        // Return early. No backtrack.
-                        return;
+                        // Continue. No backtrack.
+                        continue;
 
                     case OpType.Yield:
                         // TODO: 
@@ -207,9 +220,77 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
 
                     ForVCJoinFromVC(i, lastAccessIndex);
                 }
-
             }
 
+            if (rand != null)
+            {
+                DoRandomRaceReverse(stack, rand);
+            }
+
+        }
+
+        private void DoRandomRaceReverse(Stack stack, Random rand)
+        {
+            int raceIndex = rand.Next(races.Count);
+            Race race = races[raceIndex];
+
+            Safety.Assert(RaceReplaySuffix.Count == 0);
+
+            // Add to RaceReplaySuffix: all steps between a and b that do not h.a. a.
+            for (int i = race.a; i < race.b; ++i)
+            {
+                if (HB(stack, (uint) race.a, (uint) i))
+                {
+                    // Skip it.
+                    // But track the missing thread id if this is a create operation.
+                    if (GetSelectedTidEntry(stack, (uint) i).OpType == OpType.CREATE)
+                    {
+                        var missingThreadId = GetThreadsAt(stack, (uint) i).List.Count;
+                        var index = missingThreadIds.BinarySearch(missingThreadId);
+                        // We should not find it.
+                        Safety.Assert(index < 0);
+                        // Get the next largest index (see BinarySearch).
+                        index = ~index;
+                        // Insert before the next largest item.
+                        missingThreadIds.Insert(index, missingThreadId);
+                    }
+                }
+                else
+                {
+                    // Add thread id to the RaceReplaySuffix, but adjust
+                    // it for missing thread ids.
+                    AddThreadIdToRaceReplaySuffix(GetSelectedTidEntry(stack, (uint) i).Id);
+                }
+            }
+
+            AddThreadIdToRaceReplaySuffix(GetSelectedTidEntry(stack, (uint) race.b).Id);
+            AddThreadIdToRaceReplaySuffix(GetSelectedTidEntry(stack, (uint) race.a).Id);
+
+            // Remove steps from a onwards. Indexes start at one so we must subtract 1.
+            stack.StackInternal.RemoveRange(race.a - 1, stack.StackInternal.Count - (race.a - 1));
+
+        }
+
+        private void AddThreadIdToRaceReplaySuffix(int threadId)
+        {
+            // Add thread id to the RaceReplaySuffix, but adjust
+            // it for missing thread ids.
+
+            var index = missingThreadIds.BinarySearch(threadId);
+            // Make it so index is the number of missing thread ids before and including threadId.
+            // e.g. if missingThreadIds = [3,6,9]
+            // 3 => index + 1  = 1
+            // 4 => ~index     = 1
+            if (index >= 0)
+            {
+                index += 1;
+            }
+            else
+            {
+                index = ~index;
+            }
+
+            RaceReplaySuffix.Add(threadId - index);
         }
 
         private void AddBacktrack(Stack stack,
@@ -221,6 +302,8 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             var a = GetSelectedTidEntry(stack, lastAccessIndex);
             if (HB(stack, lastAccessIndex, i) ||
                 !Reversible(stack, lastAccessIndex, i)) return;
+
+            races.Add(new Race((int)lastAccessIndex, (int)i));
 
             // Find candidates:
             // Race between `a` and `b`.
@@ -250,7 +333,8 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
 
             var candidateThreadIds = new HashSet<uint>();
             
-            if (aTidEntries.List.Count > step.Id && aTidEntries.List[step.Id].Enabled)
+            if (aTidEntries.List.Count > step.Id && 
+                (aTidEntries.List[step.Id].Enabled || aTidEntries.List[step.Id].OpType == OpType.Yield))
             {
                 candidateThreadIds.Add((uint) step.Id);
             }
@@ -296,10 +380,11 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                 }
             }
 
-            // Make sure at least one candidate is backtracked
+            // Make sure at least one candidate is found
 
             if (candidateThreadIds.Count == 0)
             {
+                Safety.Assert(false);
                 throw new SchedulingStrategyException("DPOR: There were no candidate backtrack points.");
             }
 
@@ -333,7 +418,28 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                 }
             }
 
-            // None are slept. So just pick one.
+            // None are slept.
+            // Avoid picking threads that are disabled (due to yield hack)
+            // Start from thread b.tid:
+            {
+                uint backtrackThread = (uint)step.Id;
+                for (uint k = 0; k < numThreads; ++k)
+                {
+                    if (candidateThreadIds.Contains(backtrackThread) &&
+                        aTidEntries.List[(int) backtrackThread].Enabled)
+                    {
+                        aTidEntries.List[(int) backtrackThread].Backtrack = true;
+                        return;
+                    }
+                    ++backtrackThread;
+                    if (backtrackThread >= numThreads)
+                    {
+                        backtrackThread = 0;
+                    }
+                }
+            }
+
+            // None are slept and enabled.
             // Start from thread b.tid:
             {
                 uint backtrackThread = (uint)step.Id;
@@ -398,7 +504,11 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                 vcs = new uint[temp];
             }
 
-            
+            races.Clear();
+            RaceReplaySuffix.Clear();
+            missingThreadIds.Clear();
+            replayRaceIndex = 0;
+
         }
 
     }

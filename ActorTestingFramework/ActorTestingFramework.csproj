@@ -76,9 +76,11 @@
     <Compile Include="ITestingRuntime.cs" />
     <Compile Include="ITestLauncher.cs" />
     <Compile Include="Mailbox.cs" />
+    <Compile Include="NextActorResult.cs" />
     <Compile Include="OpType.cs" />
     <Compile Include="PCTScheduler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Race.cs" />
     <Compile Include="RandomScheduler.cs" />
     <Compile Include="Safety.cs" />
     <Compile Include="SchedulingStrategyException.cs" />

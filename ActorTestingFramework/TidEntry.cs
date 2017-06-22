@@ -94,10 +94,11 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
             public bool Equals(TidEntry x, TidEntry y)
             {
                 return
-                    x.Enabled == y.Enabled &&
-                    x.Id == y.Id &&
                     x.OpType == y.OpType &&
-                    x.TargetId == y.TargetId;
+                    (x.OpType == OpType.Yield || x.Enabled == y.Enabled) &&
+                    x.Id == y.Id &&
+                    x.TargetId == y.TargetId &&
+                    x.TargetType == y.TargetType;
             }
 
             /// <summary>Returns a hash code for the specified object.</summary>
@@ -112,7 +113,8 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                     hash = hash * 23 + obj.Id.GetHashCode();
                     hash = hash * 23 + obj.OpType.GetHashCode();
                     hash = hash * 23 + obj.TargetId.GetHashCode();
-                    hash = hash * 23 + obj.Enabled.GetHashCode();
+                    hash = hash * 23 + obj.TargetType.GetHashCode();
+                    hash = hash * 23 + (obj.OpType == OpType.Yield ? true.GetHashCode() : obj.Enabled.GetHashCode());
                     return hash;
                 }
             }

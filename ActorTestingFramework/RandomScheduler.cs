@@ -29,7 +29,7 @@ namespace ActorTestingFramework
 
         #region Implementation of IScheduler
 
-        public ActorInfo GetNext(List<ActorInfo> actorList, ActorInfo currentActor)
+        public NextActorResult GetNext(List<ActorInfo> actorList, ActorInfo currentActor, out ActorInfo nextActor)
         {
             // "Yield" and "Waiting for deadlock" hack.
             if (actorList.TrueForAll(info => !info.enabled))
@@ -64,7 +64,8 @@ namespace ActorTestingFramework
 
             if (enabled.Count == 0)
             {
-                return null;
+                nextActor = null;
+                return NextActorResult.Deadlock;
             }
 
             var enabledNotSend =
@@ -81,7 +82,8 @@ namespace ActorTestingFramework
 
             if (numSteps >= stepLimit)
             {
-                return null;
+                nextActor = null;
+                return NextActorResult.HitStepLimit;
             }
 
             if (choices[nextIndex].currentOp == OpType.SEND ||
@@ -90,7 +92,8 @@ namespace ActorTestingFramework
                 ++numSteps;
             }
 
-            return choices[nextIndex];
+            nextActor = choices[nextIndex];
+            return NextActorResult.Success;
         }
 
         public bool NextSchedule()

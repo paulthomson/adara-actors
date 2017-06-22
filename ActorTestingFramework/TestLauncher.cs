@@ -59,6 +59,8 @@ namespace ActorTestingFramework
             return runtime.GetError();
         }
 
+        public bool WasSleepSetBlocked => runtime.WasSleepSetBlocked;
+
         #endregion
     }
 }

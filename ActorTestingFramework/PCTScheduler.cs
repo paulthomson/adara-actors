@@ -48,7 +48,7 @@ namespace ActorTestingFramework
 
         #region Implementation of IScheduler
 
-        public ActorInfo GetNext(List<ActorInfo> actorList, ActorInfo currentActor)
+        public NextActorResult GetNext(List<ActorInfo> actorList, ActorInfo currentActor, out ActorInfo nextActor)
         {
             // Add new actors to the priority list.
             for (int i = actorPriorityList.Count;
@@ -65,7 +65,8 @@ namespace ActorTestingFramework
 
             if (enabled.Count == 0)
             {
-                return null;
+                nextActor = null;
+                return NextActorResult.Deadlock;
             }
 
             var enabledNotSend =
@@ -80,7 +81,8 @@ namespace ActorTestingFramework
             {
                 if (numSteps >= stepLimit)
                 {
-                    return null;
+                    nextActor = null;
+                    return NextActorResult.HitStepLimit;
                 }
                 ++numSteps;
 
@@ -112,7 +114,8 @@ namespace ActorTestingFramework
                 actorPriorityList.Add(choices[0]);
             }
 
-            return choices[0];
+            nextActor = choices[0];
+            return NextActorResult.Success;
         }
 
         public bool NextSchedule()

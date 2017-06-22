@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using ActorTestingFramework;
 
 namespace Microsoft.PSharp.TestingServices.Scheduling.POR
 {
@@ -34,6 +35,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                 if (tidEntry.Enabled)
                 {
                     tidEntry.Backtrack = true;
+                    Safety.Assert(tidEntry.Enabled);
                 }
             }
         }
@@ -70,12 +72,17 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         {
             int size = List.Count;
             int i = startingFrom;
+            bool foundSlept = false;
             for (int count = 0; count < size; ++count)
             {
                 if (List[i].Backtrack &&
                     !List[i].Sleep)
                 {
                     return i;
+                }
+                if (List[i].Sleep)
+                {
+                    foundSlept = true;
                 }
                 ++i;
                 if (i >= size)
@@ -84,7 +91,38 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                 }
             }
 
-            return -1;
+            return foundSlept ? DPORStrategy.SLEEP_SET_BLOCKED : -1;
+        }
+
+        public List<int> GetAllBacktrackNotSleptNotSelected()
+        {
+            List<int> res = new List<int>();
+            for (int i = 0; i < List.Count; ++i)
+            {
+                if (List[i].Backtrack &&
+                    !List[i].Sleep &&
+                    !List[i].Selected)
+                {
+                    Safety.Assert(List[i].Enabled);
+                    res.Add(i);
+                }
+            }
+            return res;
+        }
+
+        public bool HasBacktrackNotSleptNotSelected()
+        {
+            foreach (TidEntry t in List)
+            {
+                if (t.Backtrack &&
+                    !t.Sleep &&
+                    !t.Selected)
+                {
+                    Safety.Assert(t.Enabled);
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -117,6 +155,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                 {
                     if (res != -1)
                     {
+                        Safety.Assert(false);
                         throw new SchedulingStrategyException("DFS Strategy: More than one selected tid entry!");
                     }
                     res = i;
@@ -168,6 +207,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                     !List[i].Sleep)
                 {
                     List[i].Backtrack = true;
+                    Safety.Assert(List[i].Enabled);
                     return;
                 }
                 ++i;

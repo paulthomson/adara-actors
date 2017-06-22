@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using ActorTestingFramework;
 
@@ -15,6 +16,13 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         public readonly List<TidEntryList> StackInternal = new List<TidEntryList>();
 
         private int nextStackPos;
+
+        private Random random;
+
+        public Stack(Random random)
+        {
+            this.random = random;
+        }
 
         /// <summary>
         /// Push a list of tid entries onto the stack.
@@ -113,9 +121,14 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         {
             var top = GetTop();
 
-            return StackInternal.Count == nextStackPos
-                ? top.GetFirstBacktrackNotSlept(startingFrom)
-                : top.GetSelected();
+            if (StackInternal.Count > nextStackPos)
+            {
+                return top.GetSelected();
+            }
+
+            int res = top.TryGetSelected();
+            return res >= 0 ? res : top.GetFirstBacktrackNotSlept(startingFrom);
+
         }
 
         /// <summary>
@@ -123,6 +136,50 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         /// </summary>
         public void PrepareForNextSchedule()
         {
+            if (random != null)
+            {
+                nextStackPos = 0;
+                return;
+                List<int> backtrackSteps = new List<int>(StackInternal.Count);
+                for (int i = 0; i < StackInternal.Count; ++i)
+                {
+                    var entries = StackInternal[i];
+                    if (entries.HasBacktrackNotSleptNotSelected())
+                    {
+                        backtrackSteps.Add(i);
+                    }
+                }
+
+                {
+                    if (backtrackSteps.Count == 0)
+                    {
+                        StackInternal.RemoveRange(1, StackInternal.Count - 1);
+                        nextStackPos = 0;
+                        return;
+                    }
+
+                    int stepChoice = random.Next(backtrackSteps.Count);
+                    int stepIndex = backtrackSteps[stepChoice];
+
+                    var allEntries = StackInternal[stepIndex];
+                    var backtrackEntries =
+                        allEntries.GetAllBacktrackNotSleptNotSelected();
+
+                    var backtrackEntryChoice = random.Next(backtrackEntries.Count);
+                    var backtrackEntryIndex = backtrackEntries[backtrackEntryChoice];
+//                    Console.Write($"Backtracking to step {stepIndex}.\n");
+                    var backtrackEntry = allEntries.List[backtrackEntryIndex];
+                    allEntries.SetSelectedToSleep();
+                    allEntries.ClearSelected();
+                    backtrackEntry.Selected = true;
+                    Safety.Assert(backtrackEntry.Enabled);
+                    StackInternal.RemoveRange(stepIndex + 1, StackInternal.Count - stepIndex - 1);
+                    nextStackPos = 0;
+                }
+
+               return;
+
+            }
             // Deadlock / sleep set blocked; no selected tid entry.
             {
                 TidEntryList top = GetTopAsRealTop();

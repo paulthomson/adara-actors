@@ -4,7 +4,7 @@ namespace ActorTestingFramework
 {
     public interface IScheduler
     {
-        ActorInfo GetNext(List<ActorInfo> actorList, ActorInfo currentActor);
+        NextActorResult GetNext(List<ActorInfo> actorList, ActorInfo currentActor, out ActorInfo nextActor);
         bool NextSchedule();
         void SetSeed(int seed);
         int GetNumSteps();

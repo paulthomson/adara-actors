@@ -26,11 +26,15 @@ namespace ActorTestingFramework
 
         private volatile bool terminated;
 
+        private volatile bool sleepSetBlocked;
+
         private Exception error = null;
 
         private readonly IScheduler scheduler;
 
         public bool allowTaskQueue = true;
+
+        public bool WasSleepSetBlocked => sleepSetBlocked;
 
         public TestingActorRuntime(IScheduler scheduler)
         {
@@ -316,7 +320,7 @@ namespace ActorTestingFramework
             }
             catch (ActorTerminatedException ex)
             {
-                if (mainThread && runtime.error == null)
+                if (mainThread && runtime.error == null && !runtime.sleepSetBlocked)
                 {
                     runtime.error = new Exception("Main actor did not terminate.", ex);
                 }
@@ -413,6 +417,10 @@ namespace ActorTestingFramework
             return scheduler.GetNumSteps();
         }
 
+//        public ulong HashOperation(ActorInfo nextActor)
+//        {
+//        }
+
         public void Schedule(OpType opType, TargetType targetType, int opTarget, ActorInfo currentActor = null)
         {
             if (currentActor == null)
@@ -428,8 +436,8 @@ namespace ActorTestingFramework
             currentActor.currentOp = opType;
             currentActor.currentOpTargetType = targetType;
             currentActor.currentOpTarget = opTarget;
-
-            ActorInfo nextActor = scheduler.GetNext(actorList, currentActor);
+            ActorInfo nextActor;
+            var res = scheduler.GetNext(actorList, currentActor, out nextActor);
 
 //            if (nextActor == null)
 //            {
@@ -450,6 +458,11 @@ namespace ActorTestingFramework
 
             if (nextActor == null)
             {
+                if (res == NextActorResult.SleepsetBlocked)
+                {
+                    Console.Write("\nSleep set blocked.\n");
+                    sleepSetBlocked = true;
+                }
                 // Deadlock
                 terminated = true;
                 ActivateAllActors();
@@ -457,6 +470,10 @@ namespace ActorTestingFramework
                 CheckTerminated(opType);
                 return;
             }
+
+            // TODO: Hash
+
+
 
             if (nextActor == currentActor)
             {

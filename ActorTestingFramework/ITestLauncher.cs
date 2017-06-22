@@ -7,5 +7,6 @@ namespace ActorTestingFramework
     {
         void Execute(Action<IActorRuntime, ITestingRuntime> action, IScheduler scheduler);
         Exception GetError();
+        bool WasSleepSetBlocked { get; }
     }
 }

@@ -11,20 +11,24 @@ namespace ActorTestingFramework
         private readonly DPORAlgorithm Dpor;
         private readonly bool UseSleepSets;
         private readonly int StepLimit;
+        private Random Rand;
 
-        public DPORStrategy(bool dpor, bool useSleepSets, int stepLimit = -1)
+        public const int SLEEP_SET_BLOCKED = -2;
+
+        public DPORStrategy(bool dpor, bool useSleepSets, Random rand, int stepLimit = -1)
         {
-            Stack = new Stack();
+            Stack = new Stack(rand);
             Dpor = dpor ? new DPORAlgorithm() : null;
             UseSleepSets = useSleepSets;
             StepLimit = stepLimit;
+            Rand = rand;
             Reset();
         }
 
 
         #region Implementation of IScheduler
 
-        public ActorInfo GetNext(List<ActorInfo> actorList, ActorInfo currentActor)
+        public NextActorResult GetNext(List<ActorInfo> actorList, ActorInfo currentActor, out ActorInfo nextActor)
         {
             // "Yield" and "Waiting for deadlock" hack.
             if (actorList.TrueForAll(info => !info.enabled))
@@ -54,16 +58,16 @@ namespace ActorTestingFramework
 
             if (Stack.GetNumSteps() >= StepLimit)
             {
-                return null;
+                nextActor = null;
+                return NextActorResult.HitStepLimit;
             }
 
             bool added = Stack.Push(actorList, currentActor.id.id);
+            TidEntryList top = Stack.GetTop();
 
             if (added)
             {
-                TidEntryList top = Stack.GetTop();
-
-                if (UseSleepSets)
+                if (UseSleepSets && Rand == null)
                 {
                     SleepSets.UpdateSleepSets(Stack);
                 }
@@ -72,9 +76,17 @@ namespace ActorTestingFramework
                 {
                     top.SetAllEnabledToBeBacktracked();
                 }
+                else if (Dpor.RaceReplaySuffix.Count > 0 && Dpor.replayRaceIndex < Dpor.RaceReplaySuffix.Count)
+                {
+                    // replaying a race
+                    var tid = Dpor.RaceReplaySuffix[Dpor.replayRaceIndex];
+                    top.List[tid].Backtrack = true;
+                    Safety.Assert(top.List[tid].Enabled || top.List[tid].OpType == OpType.Yield);
+                    ++Dpor.replayRaceIndex;
+                }
                 else
                 {
-                    top.AddFirstEnabledNotSleptToBacktrack(currentActor.id.id);
+                     top.AddFirstEnabledNotSleptToBacktrack(currentActor.id.id);
                 }
             }
 
@@ -82,7 +94,10 @@ namespace ActorTestingFramework
 
             if (nextTidIndex < 0)
             {
-                return null;
+                nextActor = null;
+                return nextTidIndex == SLEEP_SET_BLOCKED
+                    ? NextActorResult.SleepsetBlocked
+                    : NextActorResult.Deadlock;
             }
 
             TidEntry nextTidEntry = Stack.GetTop().List[nextTidIndex];
@@ -92,12 +107,21 @@ namespace ActorTestingFramework
                 nextTidEntry.Selected = true;
             }
 
-            return actorList[nextTidEntry.Id];
+            nextActor = actorList[nextTidEntry.Id];
+
+            if (!nextActor.enabled &&
+                nextActor.currentOp == OpType.Yield)
+            {
+                nextActor.enabled = true;
+            }
+
+            Safety.Assert(nextActor.enabled);
+            return NextActorResult.Success;
         }
 
         public bool NextSchedule()
         {
-            Dpor?.DoDPOR(Stack);
+            Dpor?.DoDPOR(Stack, Rand);
 
             Stack.PrepareForNextSchedule();
             return Stack.GetInternalSize() != 0;
