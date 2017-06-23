@@ -80,6 +80,34 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
 
         }
 
+        public string ShowBacktrack()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("[");
+            foreach (var tidEntry in List)
+            {
+                if (!tidEntry.Backtrack)
+                {
+                    continue;
+                }
+                if (tidEntry.Selected)
+                {
+                    sb.Append("*");
+                }
+                sb.Append("(");
+                sb.Append(tidEntry.Id);
+                sb.Append(", ");
+                sb.Append(tidEntry.OpType);
+                sb.Append(", ");
+                sb.Append(tidEntry.TargetType);
+                sb.Append("-");
+                sb.Append(tidEntry.TargetId);
+                sb.Append(") ");
+            }
+            sb.Append("]");
+            return sb.ToString();
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -134,7 +162,6 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
                     !t.Sleep &&
                     !t.Selected)
                 {
-                    Safety.Assert(t.Enabled);
                     return true;
                 }
             }

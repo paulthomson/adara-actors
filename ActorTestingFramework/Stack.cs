@@ -19,6 +19,8 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
 
         private Random random;
 
+//        private Random randHack = new Random(0);
+
         public Stack(Random random)
         {
             this.random = random;
@@ -205,6 +207,33 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
 
                 Pop();
             }
+
+//            if (randHack.Next(1000) == 0)
+//            {
+//                List<int> backtrackSteps = new List<int>(StackInternal.Count);
+//                for (int i = 0; i < StackInternal.Count; ++i)
+//                {
+//                    var entries = StackInternal[i];
+//                    if (entries.HasBacktrackNotSleptNotSelected())
+//                    {
+//                        backtrackSteps.Add(i);
+//                    }
+//                }
+//
+//                if (backtrackSteps.Count > 1)
+//                {
+//                    int choice = randHack.Next(backtrackSteps.Count - 1);
+//                    int backtrackTo = backtrackSteps[choice];
+//                    while (StackInternal.Count > backtrackTo + 1)
+//                    {
+//                        Pop();
+//                    }
+//                    TidEntryList top = GetTopAsRealTop();
+//                    Safety.Assert(top.TryGetSelected() >= 0);
+//                    top.SetSelectedToSleep();
+//                    top.ClearSelected();
+//                }
+//            }
 
             nextStackPos = 0;
         }

@@ -12,15 +12,15 @@ namespace ActorTestingFramework
         private readonly DPORAlgorithm Dpor;
         private readonly bool UseSleepSets;
         private readonly int StepLimit;
-        private Random Rand;
+        private readonly Random Rand;
 
         public const int SLEEP_SET_BLOCKED = -2;
 
-        public DPORStrategy(bool dpor, bool useSleepSets, Random rand, int stepLimit = -1)
+        public DPORStrategy(int stepLimit = -1, Random rand = null, bool useSleepSets = true, bool dpor = true)
         {
             Stack = new Stack(rand);
             Dpor = dpor ? new DPORAlgorithm() : null;
-            UseSleepSets = useSleepSets;
+            UseSleepSets = rand == null && useSleepSets;
             StepLimit = stepLimit;
             Rand = rand;
             Reset();
@@ -68,7 +68,7 @@ namespace ActorTestingFramework
 
             if (added)
             {
-                if (UseSleepSets && Rand == null)
+                if (UseSleepSets)
                 {
                     SleepSets.UpdateSleepSets(Stack);
                 }
@@ -113,6 +113,9 @@ namespace ActorTestingFramework
             if (!nextActor.enabled &&
                 nextActor.currentOp == OpType.Yield)
             {
+                // Uncomment to avoid waking a yielding thread.
+//                nextActor = null;
+//                return NextActorResult.SleepsetBlocked;
                 nextActor.enabled = true;
             }
 

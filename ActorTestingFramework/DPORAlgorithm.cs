@@ -150,6 +150,7 @@ namespace Microsoft.PSharp.TestingServices.Scheduling.POR
         /// 
         /// </summary>
         /// <param name="stack"></param>
+        /// <param name="rand"></param>
         public void DoDPOR(Stack stack, Random rand)
         {
             UpdateFieldsAndRealocateDatastructuresIfNeeded(stack);
